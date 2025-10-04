@@ -2,8 +2,12 @@
   "name": "@bitovi/mcp-training",
   "version": "0.0.1",
   "description": "A small example mcp service ",
-  "main": "src/index.ts",
+  "type": "module",
+  "bin": {
+    "mcp-training-stdio": "src/stdio-server.ts"
+  },
   "scripts": {
+    "dev:stdio": "node --import ./loader.mjs src/stdio-server.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -12,8 +16,13 @@
   ],
   "author": "Bitovi",
   "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.18.0",
+    "zod": "^3.23.0"
+  },
   "devDependencies": {
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.2"
+    "typescript": "^5.6.0",
+    "@types/node": "^20.0.0"
   }
 }

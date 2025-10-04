@@ -1,15 +1,33 @@
-# MCP Training Material Guidelines
+# MCP Training Material Guide
 
 ## Project Overview
 
-This project creates step-by-step training materials for building MCP (Model Context Protocol) services using Node.js and TypeScript. The training follows a practical approach from basic stdio servers to production HTTP services with OAuth 2.1.
+This project (https://github.com/bitovi/mcp-training) creates step-by-step training materials for building MCP (Model Context Protocol) services using Node.js and TypeScript. The training follows a practical approach from basic stdio servers to production HTTP services with OAuth 2.1.
 
 The steps for the training can be found in `<project-root>/training/*`.
 
 This project also includes:
 
 - The final output of all the steps in `<project-root>/final/*`
-- Initial scaffolding of the project in `<project-root>/*`. 
+- Initial scaffolding of the project in `<project-root>/*`.
+
+## Training Authoring Workflow
+
+**For Content Authors**: This training is authored using the following workflow:
+
+1. **Root folder development**: The project root (`<project-root>/`) contains the current working version where we develop and test each step's final result
+2. **Reference implementations**: Each `training/{step}/` folder contains reference files showing the starting point and final state for that step
+3. **Iterative building**: Each step builds upon the previous step's final state in the root folder
+4. **Copy for reference**: When a step is complete, we copy the relevant files to `training/{step}/` as reference implementations
+
+**For Trainees**: When using this training:
+
+1. **Clone and work in root**: Trainees clone the repository and work directly in the project root folder
+2. **Progressive building**: Each step modifies files in the root folder, building upon the previous step's results
+3. **No folder switching**: Trainees never work in the `training/{step}/` folders - those are for reference only
+4. **Starting state**: The root folder is set up with the appropriate starting files for step 1
+
+**Important**: When writing training content, avoid language like "building from the starter files in `training/2-using-mcp`" because trainees work in the root folder, not in the training subfolders. 
 
 
 ## Content Structure for Exercise Steps
@@ -18,8 +36,8 @@ For hands-on exercise steps, follow this structure based on Bitovi Academy forma
 
 ### Required Sections (in order):
 1. **Title (H1)**: Clear, descriptive title
-2. **Introduction**: Brief explanation of what the person will learn
-3. **Problem (H2)**: High-level description of what problem we're solving
+2. **Introduction**: What the learner will understand/learn by the end (learning objectives, concepts, skills)
+3. **Problem (H2)**: The specific practical challenge or task they need to solve in this exercise
 4. **What you need to know (H2)**: Everything needed to accomplish the task
 5. **Technical Requirements (H2)**: Explicit instructions without giving away the solution
 6. **How to verify your solution (H2)**: Instructions on testing the solution
@@ -32,6 +50,8 @@ For hands-on exercise steps, follow this structure based on Bitovi Academy forma
 - For non-MCP utility code (like slug generation), provide complete implementations
 - Use H3 subsections (###) when there's a lot to cover
 - Focus on concepts directly relevant to MCP development
+- **Link to official documentation**: Always provide links to official documentation for any libraries, frameworks, or tools introduced
+- **Include general knowledge**: How things work, conceptual understanding, background theory
 
 #### Technical Requirements
 - Be explicit but don't reveal the final solution
@@ -110,6 +130,12 @@ For explanatory/foundational steps (like "What is MCP?"):
 
 ## Writing Style
 
+### Accuracy and Verification
+- **NEVER invent URLs, API endpoints, or technical specifications**
+- **ASK for clarification when technical details are uncertain**
+- **Only use URLs and endpoints that are explicitly provided**
+- **Verify all technical claims before including them**
+
 ### Tone
 - Clear and direct
 - Practical and hands-on
@@ -124,6 +150,8 @@ For explanatory/foundational steps (like "What is MCP?"):
 
 ### Emoji Usage
 - ✏️ Use for actionable steps the user should take (following Bitovi Academy pattern)
+  - If there is more than a single step, use single ✏️ followed by descriptive text and numbered list
+    - Example: "✏️ Perform the following to start the server:" followed by numbered steps
 - 💡 Use for tips and helpful insights
 - ⚠️ Use for warnings or important cautions
 - 🔍 Use for verification/testing steps
@@ -145,3 +173,6 @@ Before completing any training step:
 - [ ] Solution is complete and correct
 - [ ] Writing is clear and concise
 - [ ] MCP concepts are properly explained
+- [ ] **NEVER make up URLs, API endpoints, or technical specifications**
+- [ ] **When unsure about technical details, explicitly ask for clarification**
+- [ ] **Only include URLs and endpoints that are provided or verified**

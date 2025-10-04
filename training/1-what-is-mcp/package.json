@@ -15,8 +15,7 @@
   "author": "Bitovi",
   "license": "MIT",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.18.0",
-    "zod": "^3.23.0"
+
   },
   "devDependencies": {
     "ts-node": "^10.9.2",

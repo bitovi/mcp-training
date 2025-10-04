@@ -1,10 +1,10 @@
-# Live example: Using an existing MCP (Atlassian)
+# Live example: Using an existing MCP (GitHub)
 
-Learn how to connect to and use a real production MCP server by configuring VS Code to work with Atlassian's Rovo MCP server and making actual tool calls.
+Learn how to connect to and use a real production MCP server by configuring VS Code to work with GitHub's MCP server and making actual tool calls.
 
 ## Problem
 
-Before building your own MCP server, you need to understand how MCP works in practice. You want to use GitHub Copilot to help estimate work for a specific Jira issue by connecting to a real Atlassian MCP server, loading issue details, and having Copilot analyze the scope and complexity.
+Before building your own MCP server, you need to understand how MCP works in practice. You want to use GitHub Copilot to help manage GitHub issues by connecting to GitHub's MCP server, creating a new issue in the `bitovi/mcp-training` repository, and then closing it.
 
 This hands-on experience will show you how agents discover tools, handle authentication, and make tool calls in a real-world scenario.
 
@@ -29,107 +29,115 @@ VS Code can act as an MCP client through configuration files. You'll create a `.
 }
 ```
 
-For HTTP-based servers like Atlassian's, the configuration looks different:
+For HTTP-based servers like GitHub's, the configuration looks different:
 
 ```json
 {
   "servers": {
-    "atlassian": {
-        "url": "https://mcp.atlassian.com/v1/sse",
-        "type": "http"
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/"
     }
   }
 }
 ```
 
-### OAuth 2.1 + PKCE for Atlassian
+### OAuth 2.1 + PKCE for GitHub
 
-Atlassian uses OAuth 2.1 with PKCE (Proof Key for Code Exchange) for secure authentication. PKCE is particularly important for applications like VS Code that can't securely store client secrets:
+GitHub uses OAuth 2.1 with PKCE (Proof Key for Code Exchange) for secure authentication. PKCE is particularly important for applications like VS Code that can't securely store client secrets:
 
 📝 **References**: 
 - [PKCE Specification (RFC 7636)](https://tools.ietf.org/html/rfc7636)
-- [Atlassian MCP Server Guide](https://developer.atlassian.com/cloud/mcp/)
+- [GitHub OAuth Documentation](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps)
 
 **Why PKCE for VS Code?**
 Unlike traditional OAuth where applications are pre-registered with fixed redirect URIs, VS Code uses dynamic client registration. Since VS Code isn't hosted at a specific URL and runs locally on each user's machine, it can't safely store a client secret. PKCE solves this by using cryptographic proof instead of a shared secret.
 
 💡 **Note**: We'll dive deeper into OAuth 2.1 and PKCE implementation patterns in later steps when building our own authenticated MCP servers.
 
-### MCP Inspector for Testing
-
-The MCP Inspector is a web-based tool for testing MCP connections:
-
-```bash
-npx @modelcontextprotocol/inspector
-```
-
-📝 **Reference**: [MCP Inspector Documentation](https://github.com/modelcontextprotocol/inspector)
-
-It provides a UI to:
-- Connect to MCP servers
-- Browse available tools
-- Make tool calls with custom parameters
-- View request/response details 
 
 
-### Atlassian MCP Server Capabilities
+### GitHub MCP Server Capabilities
 
-Atlassian's server provides tools for:
-- **Jira**: `search_issues`, `get_issue`, `create_issue`
-- **Confluence**: `search_pages`, `get_page`, `search_spaces`
-- **Cross-platform**: `search` (unified across services)
+[GitHub's MCP server](https://github.com/github/github-mcp-server) provides tools for:
+- **Issues**: `create_issue`, `get_issue`, `update_issue` (can close by setting state to "closed")
+- **Pull Requests**: `create_pull_request`, `get_pull_request`, `update_pull_request_branch`
+- **Repositories**: `search_repositories`
+- **Files**: Limited file operations may be available depending on server configuration
 
-## Technical Requirements
+### Starting MCP Servers in VS Code
 
-✏️ Set up your development environment to connect to Atlassian's MCP server and make your first tool calls.
+Once you've created an `mcp.json` configuration file:
 
-### Prerequisites Setup
-1. Create a free Atlassian Cloud account at [Atlassian Signup](https://id.atlassian.com/signup)
-2. Create at least one Jira project or Confluence space with some content
-3. Note your Atlassian site URL (e.g., `yoursite.atlassian.net`)
+1. **Open the file** in VS Code
+2. **Look for the "Start MCP Server" button** that appears in the editor
+3. **Click the button** to initiate the connection
+4. **Complete OAuth flow** - VS Code will open a browser for GitHub authorization
+5. **Return to VS Code** - the server connection will be established
 
-### VS Code MCP Configuration
-1. Create a `.vscode/mcp.json` file in your project root
-2. Configure it to connect to Atlassian's MCP server with proper authentication
-3. Include the required OAuth scopes: `read:jira-user` and `read:confluence-content`
+This process handles the PKCE OAuth flow automatically, requesting appropriate scopes and establishing a secure connection to the MCP server.
 
-### Authentication Setup
-1. Set up OAuth 2.1 credentials for the Atlassian MCP server
-2. Configure the proper redirect URI for VS Code integration
-3. Obtain an access token through the PKCE flow
+### Managing Tool Limits in VS Code
 
-### Tool Discovery and Testing
-1. Use MCP Inspector to connect to the configured Atlassian server
-2. List available tools and examine their schemas
-3. Make at least one successful tool call (e.g., search for Jira issues)
-4. Observe how authentication errors are handled when using invalid tokens
+When connecting to GitHub's MCP server, you'll encounter an important limitation: **tool limits**. GitHub's MCP server provides over 100 tools across issues, pull requests, repositories, and files, which immediately exceeds VS Code's default tool limit.
 
-The server should be accessible at `https://api.atlassian.com/mcp/v1` and require proper OAuth authentication.
+**What happens:**
+- VS Code has a maximum number of tools it can handle simultaneously
+- GitHub's comprehensive MCP server exceeds this limit
+- You'll need to selectively enable only the tools you need
+
+**Tool Management Strategies:**
+- **Selective enabling**: Choose only the specific tools required for your task
+- **Category-based**: Enable tool categories (e.g., only "Issues" tools)
+- **Progressive activation**: Start with essential tools, add more as needed
+
+**Common VS Code Tool Limit Solutions:**
+1. **Tool filtering**: Configure which tool categories to enable
+2. **Custom configurations**: Create focused MCP configurations for specific tasks
+3. **Session management**: Enable different tool sets for different work sessions
+
+💡 **Best Practice**: For this training exercise, focus on enabling only the Issues-related tools (`create_issue`, `get_issue`, `update_issue`) to avoid hitting tool limits while learning MCP fundamentals.
+
+### Best Practices for MCP Tool Call Prompting
+
+When working with AI agents that have access to MCP tools, effective prompting is crucial:
+
+**Be Specific and Direct:**
+- Clearly state what you want to accomplish
+- Include specific parameters (repository names, issue titles, etc.)
+- Avoid ambiguous language that could lead to wrong tool calls
+
+**Provide Context:**
+- Mention the repository or resource you're working with
+- Include relevant details like issue numbers, usernames, or file paths
+- Explain the purpose when creating content (issues, PRs, etc.)
+
+**Use Action-Oriented Language:**
+- Start with action verbs: "Create an issue...", "Close issue #42...", "Search for..."
+- Be explicit about the desired outcome
+- Specify any formatting or content requirements
+
+**Research Approaches:**
+- **Iterative refinement**: Start with basic prompts, then add specificity based on results
+- **Template-based**: Use consistent structures for similar tasks
+- **Context-aware**: Reference previous actions or existing state
+- **Verification-focused**: Ask for confirmation of actions before execution
+
+**Example Effective Prompts:**
+- ✅ "Create a new issue in bitovi/mcp-training with title 'Test MCP Integration' and describe it as a training exercise"
+- ❌ "Make an issue about testing"
+- ✅ "Close issue #42 in the mcp-training repository"
+- ❌ "Close that issue"
+
 
 ## How to verify your solution
 
-🔍 **Test your MCP connection:**
+Using Github Copilot Chat, you should be able to:
 
-✏️ Launch MCP Inspector:
-```bash
-npx @modelcontextprotocol/inspector
-```
+1. Prompt the creation of a test issue in `bitovi/mcp-training`.
+2. Verify the issue exists in [mcp-training's issues](https://github.com/bitovi/mcp-training/issues)
+3. Prompt the closing of the test issue.
 
-✏️ Connect to your configured Atlassian server and verify:
-1. **Tool Discovery**: You can see a list of available Jira and Confluence tools
-2. **Authentication**: The connection succeeds with your OAuth token
-3. **Tool Execution**: You can successfully call `search_issues` or `search_pages`
-4. **Error Handling**: Invalid tokens produce clear error messages
-
-✏️ In VS Code, verify the MCP integration:
-1. Open the Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`)
-2. Look for MCP-related commands
-3. Confirm your Atlassian server appears in the available servers list
-
-**Expected successful output:**
-- Tool list showing Jira and Confluence capabilities
-- Successful search results from your Atlassian instance
-- Proper error messages for unauthorized requests
 
 ## Solution
 
@@ -141,56 +149,80 @@ npx @modelcontextprotocol/inspector
 ```json
 {
   "servers": {
-    "atlassian": {
-      "url": "https://mcp.atlassian.com/v1/sse",
+    "github": {
+      "url": "https://api.githubcopilot.com/mcp/",
       "type": "http"
     }
   }
 }
 ```
 
-### 2. Test Connection and Load Specific Issue
+### 2. Start MCP Server Connection
 
-✏️ Launch MCP Inspector:
-```bash
-npx @modelcontextprotocol/inspector --config .vscode/mcp.json
+✏️ Perform the following to start the MCP server connection:
+
+1. Open the `mcp.json` file in VS Code and click "Start MCP Server"
+2. Complete the OAuth authorization in your browser
+3. Return to VS Code and verify the connection is established
+
+### 3. Test with GitHub Copilot Prompts
+
+✏️ Open GitHub Copilot Chat and use these prompts:
+
+**Create an Issue:**
+
+
+```
+Create a new issue in the bitovi/mcp-training repository with the title "MCP Training Exercise - [Your Name]" and body "This issue was created as part of the MCP training to test GitHub integration via VS Code and Copilot."
 ```
 
-✏️ Connect and test:
-1. Select "atlassian" from the server list
-2. Complete the PKCE OAuth flow (no pre-registration needed)
-3. Call `get_issue` tool with issue key: `MCP-1`
-4. Use the response to prompt Copilot: "Analyze this Jira issue and estimate the development effort"
+**Close the Issue:**
+```
+Close issue #[issue_number] in the bitovi/mcp-training repository by updating its state to closed.
+```
 
-### 3. Example Tool Call
+### 4. Expected Tool Call Examples
 
-**Input to `get_issue`:**
+When you use the prompts above, Copilot will make these MCP tool calls:
+
+**For issue creation:**
 ```json
 {
-  "issueKey": "MCP-1"
+  "tool": "create_issue",
+  "parameters": {
+    "owner": "bitovi",
+    "repo": "mcp-training",
+    "title": "MCP Training Exercise - [Your Name]",
+    "body": "This issue was created as part of the MCP training to test GitHub integration via VS Code and Copilot."
+  }
 }
 ```
 
-**Expected Response:**
+**For issue closure:**
 ```json
 {
-  "content": [
-    {
-      "type": "text",
-      "text": "Issue MCP-1: Implement user authentication\nDescription: Add OAuth 2.1 login flow...\nAcceptance Criteria: [detailed requirements]"
-    }
-  ]
+  "tool": "update_issue",
+  "parameters": {
+    "owner": "bitovi",
+    "repo": "mcp-training",
+    "issue_number": 42,
+    "state": "closed"
+  }
 }
 ```
 
-**Copilot Prompt:**
-> "Based on this Jira issue, estimate the development effort in story points and identify potential technical challenges."
+### 5. Verify Results
+
+✏️ Check that:
+1. The issue appears on GitHub: `https://github.com/bitovi/mcp-training/issues`
+2. The issue is properly closed after your second prompt
+3. Copilot provides confirmation of both actions
 
 </details>
 
 💡 **Troubleshooting Tips:**
-- If tools don't appear, check your OAuth scopes match the server requirements
-- For authentication errors, verify your Atlassian site URL is correct
+- If tools don't appear, ensure you completed the OAuth authorization in the browser
+- For authentication errors, verify you have access to the `bitovi/mcp-training` repository
 - Use the Inspector's "Request/Response" tab to debug failed tool calls
 
 📝 **Additional Resources:**

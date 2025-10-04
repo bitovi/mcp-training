@@ -1,0 +1,13 @@
+{
+  "servers": {
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/"
+    },
+    "mcp-training": {
+        "type": "stdio",
+        "command": "node",
+        "args": ["--import", "./loader.mjs", "src/stdio-server.ts"]
+    }
+  }
+}
