@@ -172,14 +172,11 @@ Using Github Copilot Chat, you should be able to:
 **Create an Issue:**
 
 
-```
-Create a new issue in the bitovi/mcp-training repository with the title "MCP Training Exercise - [Your Name]" and body "This issue was created as part of the MCP training to test GitHub integration via VS Code and Copilot."
-```
+> ```Create a new issue in the bitovi/mcp-training repository with the title "MCP Training Exercise - [Your Name]" and body "This issue was created as part of the MCP training to test GitHub integration via VS Code and Copilot."```
 
 **Close the Issue:**
-```
-Close issue #[issue_number] in the bitovi/mcp-training repository by updating its state to closed.
-```
+
+> ```Close issue #[issue_number] in the bitovi/mcp-training repository by updating its state to closed.```
 
 ### 4. Expected Tool Call Examples
 
