@@ -7,9 +7,9 @@
     "mcp-training-stdio": "src/stdio-server.ts"
   },
   "scripts": {
+    "test:multi-client": "node --import ./loader.mjs training/7-reconnect-mcp-sessions/test-multiple-agents.ts",
     "dev:stdio": "node --import ./loader.mjs src/stdio-server.ts",
-    "dev:http": "node --import ./loader.mjs src/http-server.ts",
-    "test:multi-client": "node --import ./loader.mjs training/7-reconnect-mcp-sessions/test-multiple-agents.ts"
+    "dev:http": "node --import ./loader.mjs src/http-server.ts"
   },
   "keywords": [
     "mcp",
