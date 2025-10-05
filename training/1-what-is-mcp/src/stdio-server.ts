@@ -1,19 +1,15 @@
 #!/usr/bin/env node --import ./loader.mjs
-//import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 //import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-//import { registerTools } from "./tools.js";
+import {createMcpServer} from "./mcp-server.js";
 
 try {
-  // Create the MCP server
+  // TODO: Create stdio transport
   
 
-  // Register all tools
+  // TODO: Connect server to transport
   
 
-  // Create stdio transport
-  
-  
-  // Connect server to transport
+  // TODO: Log to stderr so it doesn't interfere with MCP protocol
   
 } catch (error) {
   console.error("Server error:", error);

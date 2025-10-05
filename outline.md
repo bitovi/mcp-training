@@ -156,26 +156,36 @@ await server.connect(transport);
 
 ```ts
 // src/http-server.ts
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamable-http.js";
-import { Hono } from "hono";
+import express from 'express';
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import server from "./mcp-server.js";
 
-const server = new McpServer({ name: "demo-server", version: "1.0.0" });
-// (reuse the same registerTool code from stdio example)
+const app = express();
+app.use(express.json());
 
-const app = new Hono();
-const transport = new StreamableHTTPServerTransport();
-
-// POST: client → server
-app.post("/mcp", async (c) => transport.handlePost(c.req, c));
-// GET: optional SSE stream (server → client)
-app.get("/mcp", async (c) => transport.handleGet(c.req, c));
-// DELETE: end session
-app.delete("/mcp", async (c) => transport.handleDelete(c.req, c));
+// Create a single transport for all requests (stateless mode)
+const transport = new StreamableHTTPServerTransport({
+  sessionIdGenerator: undefined, // Stateless mode
+});
 
 await server.connect(transport);
 
-export default app;
+// POST: client → server messages
+app.post("/mcp", async (req, res) => {
+  await transport.handleRequest(req, res, req.body);
+});
+
+// GET: optional SSE stream (server → client)
+app.get("/mcp", async (req, res) => {
+  await transport.handleRequest(req, res);
+});
+
+// DELETE: end session
+app.delete("/mcp", async (req, res) => {
+  await transport.handleRequest(req, res);
+});
+
+app.listen(3000);
 ```
 
 **Run & test**
@@ -185,6 +195,8 @@ export default app;
 **Speaker notes**
 
 * Contrast with deprecated HTTP+SSE: Streamable HTTP is the new baseline; SSE is optional inside it.
+* Start simple with stateless mode - session management comes next.
+* This approach works for basic testing but isn't production-ready for multiple clients.
 
 ---
 
@@ -200,7 +212,7 @@ export default app;
 **Add a simple streaming tool (start here)**
 
 ```ts
-// Step 6: basic streaming without business rules — we'll add validation in Step 7
+// Step 6: basic streaming without business rules — we'll add validation in Step 8
 server.registerTool(
   "countdown",
   {
@@ -220,7 +232,68 @@ server.registerTool(
 
 ---
 
-## 7) Validation patterns (schema + runtime)
+## 7) Reconnecting MCP sessions: stateful transports
+
+**Goal:** Handle multiple clients with proper session management.
+
+**Key concepts**
+
+* **Sessions via `mcp-session-id` header**: server maps each session to a transport instance.
+* **Session lifecycle**: initialization → use → termination → cleanup.
+* **Transport per session**: each client gets its own transport instance with isolated state.
+
+**Why sessions matter**
+
+* **State isolation**: different clients don't interfere with each other.
+* **Resource management**: proper cleanup when clients disconnect.
+* **Streaming support**: SSE streams need persistent connections per client.
+* **Scalability**: handle many concurrent clients efficiently.
+
+**Code enhancement**
+
+```ts
+// Enhanced src/http-server.ts with session management
+const transports: Record<string, StreamableHTTPServerTransport> = {};
+
+app.post("/mcp", async (req, res) => {
+  const sessionId = req.headers['mcp-session-id'] as string | undefined;
+  let transport: StreamableHTTPServerTransport;
+
+  if (sessionId && transports[sessionId]) {
+    // Reuse existing transport
+    transport = transports[sessionId];
+  } else {
+    // Create new transport with session management
+    transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: () => Math.random().toString(36).substring(2),
+      onsessioninitialized: (newSessionId: string) => {
+        transports[newSessionId] = transport;
+      },
+    });
+
+    // Clean up on close
+    transport.onclose = () => {
+      if (transport.sessionId) {
+        delete transports[transport.sessionId];
+      }
+    };
+
+    await server.connect(transport);
+  }
+
+  await transport.handleRequest(req, res, req.body);
+});
+```
+
+**Test scenarios**
+
+* Connect multiple Inspector instances simultaneously.
+* Verify each gets its own session ID.
+* Test reconnection with existing session ID.
+
+---
+
+## 8) Validation patterns (schema + runtime)
 
 **Goal:** Demonstrate dynamic validation and great error UX.
 
@@ -233,7 +306,7 @@ server.registerTool(
 **Enhance the same tool with validation**
 
 ```ts
-// Step 7: add a business rule on top of the Step 6 tool
+// Step 8: add a business rule on top of the Step 6 tool
 server.registerTool(
   "countdown",
   {
@@ -258,7 +331,7 @@ server.registerTool(
 
 ---
 
-## 8) Authorization: OAuth 2.1 + PKCE for MCP
+## 9) Authorization: OAuth 2.1 + PKCE for MCP
 
 **Goal:** Secure your HTTP server and call into protected upstreams.
 
@@ -279,7 +352,7 @@ server.registerTool(
 * Protect `slugify` tool; require `demo.read` scope.
 
 
-## 9) Tips & gotchas
+## 10) Tips & gotchas
 
 * **Hosting:** Node 18+ on Fly/Render/Vercel functions (for GET/POST/DELETE) or a container on k8s.
 * **State:** Session map must be bounded; evict on `DELETE` or idle timeout.
@@ -290,7 +363,7 @@ server.registerTool(
 
 ---
 
-## 10) Conclusion
+## 11) Conclusion
 
 * You learned:
 

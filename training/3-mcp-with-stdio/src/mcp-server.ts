@@ -13,17 +13,23 @@ function createSlug(text: string): string {
   return slug;
 }
 
-export function registerTools(server: McpServer) {
+// Factory function to create a new MCP server instance
+export function createMcpServer(): McpServer {
+  const server = new McpServer({ 
+    name: "demo-server", 
+    version: "1.0.0" 
+  });
+
+  // Register tools
   server.registerTool(
     "slugify",
     {
       title: "Slugify",
       description: "Convert text to a URL-friendly slug",
       inputSchema: {
-        text: z.string()
+        text: z.string().describe("The text to convert into a URL-friendly slug")
       }
     },
-    // @ts-ignore
     async ({ text }) => {
       const slug = createSlug(text);
       
@@ -32,4 +38,6 @@ export function registerTools(server: McpServer) {
       };
     }
   );
+
+  return server;
 }

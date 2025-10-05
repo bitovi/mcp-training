@@ -115,18 +115,20 @@ MCP uses JSON-RPC 2.0 over various transports. Key message types:
 }
 ```
 
-**Error Response (example)**:
+**Malformed Response (what happens with the bug)**:
 ```json
 {
   "jsonrpc": "2.0",
   "id": 1,
-  "error": {
-    "code": -32602,
-    "message": "Invalid params",
-    "data": "Additional error details"
+  "result": {
+    "message": [
+      { "type": "text", "text": "hello-world" }
+    ]
   }
 }
 ```
+
+This response looks successful but the client doesn't display any content because it expects a `content` field, not `message`.
 
 ### Connecting to Atlassian's MCP Service
 
@@ -152,9 +154,10 @@ The OAuth flow will:
 - "Protocol error": Incorrect message format
 
 **Tool Response Issues**:
-- Missing `content` field in responses
+- Missing `content` field in responses (appears successful but no content shown)
 - Wrong content type (should be array of content blocks)
-- Invalid JSON structure
+- Invalid JSON structure (actual errors)
+- Silent failures where response format is wrong but doesn't error
 
 **Authentication Debugging**:
 - OAuth metadata discovery failures
@@ -173,28 +176,35 @@ The OAuth flow will:
 6. **Verify the fix** by testing the tool again
 7. **Understand the debugging workflow** for future MCP development
 
-**For step 3, replace your current tool implementation in `src/tools.ts` with this broken version**:
+**For step 3, replace your current tool implementation in `src/mcp-server.ts` with this broken version**:
 
 ```typescript
-export function registerTools(server: McpServer) {
-  server.registerTool(
-    "slugify",
-    {
-      title: "Slugify",
-      description: "Convert text to a URL-friendly slug",
-      inputSchema: {
-        text: z.string().describe("The text to convert into a URL-friendly slug")
-      }
-    },
-    // @ts-ignore
-    async ({ text }) => {
-      const slug = createSlug(text);
-      
-      // BUG: Using 'message' instead of 'content'
-      return { 
-        message: [{ type: "text", text: slug }] 
-      };
+// Create and configure the MCP server
+const server = new McpServer({ 
+  name: "demo-server", 
+  version: "1.0.0" 
+});
+
+// Register tools
+server.registerTool(
+  "slugify",
+  {
+    title: "Slugify",
+    description: "Convert text to a URL-friendly slug",
+    inputSchema: {
+      text: z.string().describe("The text to convert into a URL-friendly slug")
     }
+  },
+  // @ts-ignore
+  async ({ text }) => {
+    const slug = createSlug(text);
+    
+    // BUG: Using 'message' instead of 'content'
+    return { 
+      message: [{ type: "text", text: slug }] 
+    };
+  }
+);
   );
 }
 ```
@@ -221,9 +231,9 @@ return {
 
 3. **Introduce the bug**: Replace your tool implementation with the broken version from Technical Requirements
 
-4. **Observe the missing response**: The inspector will show a successful call but with no content returned
+4. **Observe the missing response**: The inspector will show "Success" but no content will be displayed
 
-5. **Check the raw protocol**: Look at the JSON-RPC message history to see the malformed response structure
+5. **Check the raw protocol**: Look at the JSON-RPC message history to see the malformed response with `message` instead of `content`
 
 6. **Fix the bug**: Change `message` back to `content` and verify it works
 
@@ -249,22 +259,22 @@ This will automatically:
 4. Enter test input: `"Hello World! Test"`
 5. Verify you get: `"hello-world-test"`
 
-**Introduce the bug in `src/tools.ts`**:
+**Introduce the bug in `src/mcp-server.ts`**:
 Replace your current tool implementation with the broken version provided in the Technical Requirements section above. This version uses `message` instead of `content` in the return statement.
 
-**Observe the issue**:
+**Observe the silent failure**:
 1. Restart the inspector (Ctrl+C and run again)
 2. Try calling the slugify tool again
-3. Notice you get a "Success" response, but with no content displayed
-4. Check the "History" panel to see the actual JSON-RPC response with the incorrect `message` field
+3. Notice you get a "Success" status but no visible content in the response
+4. Check the "History" panel to see the JSON-RPC response contains `message` instead of `content`
 
 **Fix the bug**:
 ```typescript
-export function registerTools(server: McpServer) {
-  server.registerTool(
-    "slugify",
-    {
-      title: "Slugify",
+// Register tools
+server.registerTool(
+  "slugify",
+  {
+    title: "Slugify",
       description: "Convert text to a URL-friendly slug",
       inputSchema: {
         text: z.string().describe("The text to convert into a URL-friendly slug")

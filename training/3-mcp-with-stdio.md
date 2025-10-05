@@ -173,15 +173,16 @@ server.registerTool(
 
 ✏️ Implement your MCP server:
 
-1. In `src/tools.ts`:
+1. In `src/mcp-server.ts`:
+   - Create and configure an `McpServer` instance named "demo-server" with version "1.0.0"
    - Register a tool called "slugify" that:
      - Takes a `text` parameter (string) with proper description
      - Uses the existing `createSlug` function
      - Returns the result in MCP content format
+   - Export the configured server as the default export
 
 2. In `src/stdio-server.ts`:
-   - Create an `McpServer` instance named "demo-server" with version "1.0.0"
-   - Register your tools using the `registerTools` function
+   - Import the configured server from `./mcp-server.js`
    - Create a `StdioServerTransport` and connect it to the server
    - Add appropriate error handling and logging
 
@@ -243,7 +244,7 @@ Here's the complete implementation:
 npm install @modelcontextprotocol/sdk zod
 ```
 
-**src/tools.ts** (uncomment imports and implement the registerTools function):
+**src/mcp-server.ts** (create and configure the MCP server):
 ```typescript
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
@@ -260,7 +261,14 @@ function createSlug(text: string): string {
   return slug;
 }
 
-export function registerTools(server: McpServer) {
+// Factory function to create a new MCP server instance
+export function createMcpServer(): McpServer {
+  const server = new McpServer({ 
+    name: "demo-server", 
+    version: "1.0.0" 
+  });
+
+  // Register tools
   server.registerTool(
     "slugify",
     {
@@ -278,31 +286,23 @@ export function registerTools(server: McpServer) {
       };
     }
   );
+
+  return server;
 }
 ```
 
-**src/stdio-server.ts** (uncomment imports and implement the server setup):
+**src/stdio-server.ts** (connect the configured server to stdio transport):
 ```typescript
 #!/usr/bin/env node --import ./loader.mjs
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { registerTools } from "./tools.js";
+import {createMcpServer} from "./mcp-server.js";
 
 try {
-  // Create the MCP server
-  const server = new McpServer({ 
-    name: "demo-server", 
-    version: "1.0.0" 
-  });
-
-  // Register all tools
-  registerTools(server);
-
   // Create stdio transport
   const transport = new StdioServerTransport();
   
   // Connect server to transport
-  await server.connect(transport);
+  await createMcpServer().connect(transport);
 
   // Log to stderr so it doesn't interfere with MCP protocol
   console.error("Demo MCP server running on stdio");
