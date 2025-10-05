@@ -3,7 +3,8 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { registerTools } from "./tools.js";
 
-async function main() {
+try {
+  // Create the MCP server
   const server = new McpServer({ 
     name: "demo-server", 
     version: "1.0.0" 
@@ -17,12 +18,11 @@ async function main() {
   
   // Connect server to transport
   await server.connect(transport);
-  
+
   // Log to stderr so it doesn't interfere with MCP protocol
   console.error("Demo MCP server running on stdio");
-}
-
-main().catch((error) => {
+  
+} catch (error) {
   console.error("Server error:", error);
   process.exit(1);
-});
+}

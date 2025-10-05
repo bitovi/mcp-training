@@ -1,0 +1,26 @@
+{
+  "name": "@bitovi/mcp-training",
+  "version": "0.0.1",
+  "description": "A small example mcp service ",
+  "type": "module",
+  "bin": {
+    "mcp-training-stdio": "src/stdio-server.ts"
+  },
+  "scripts": {
+  },
+  "keywords": [
+    "mcp",
+    "training"
+  ],
+  "author": "Bitovi",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.18.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.0",
+    "@types/node": "^20.0.0"
+  }
+}

@@ -20,10 +20,9 @@ export function registerTools(server: McpServer) {
       title: "Slugify",
       description: "Convert text to a URL-friendly slug",
       inputSchema: {
-        text: z.string()
+        text: z.string().describe("The text to convert into a URL-friendly slug")
       }
     },
-    // @ts-ignore
     async ({ text }) => {
       const slug = createSlug(text);
       

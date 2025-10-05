@@ -1,0 +1,8 @@
+{
+  "servers": {
+    "mcp-training": {
+      "type": "stdio",
+      "command": "./src/stdio-server.ts"
+    }
+  }
+}

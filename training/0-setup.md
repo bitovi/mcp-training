@@ -14,3 +14,6 @@ We should give instructions for both windows and linux-based computers.
 
 
 TODO: We probably want to create this as a github repository and use `dev containers` to run the project ... Then folks will need to clone the project. We will do this later.
+
+
+Atlassian 
