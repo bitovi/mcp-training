@@ -6,8 +6,7 @@
     },
     "mcp-training": {
         "type": "stdio",
-        "command": "node",
-        "args": ["--import", "./loader.mjs", "src/stdio-server.ts"]
+        "command": "./src/stdio-server.ts"
     }
   }
 }

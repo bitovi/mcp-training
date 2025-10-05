@@ -141,8 +141,7 @@ const userInfoSchema = {
 };
 
 // McpServer can call methods like this to get JSON Schema:
-const nameSchema = z.string().describe("The user's full name");
-console.log(nameSchema.schema());
+console.log(z.toJSONSchema(userInfoSchema.name));
 // Output: {
 //   "type": "string", 
 //   "description": "The user's full name"
@@ -171,22 +170,16 @@ server.registerTool(
 
 ## Technical Requirements
 
-✏️ Set up the project dependencies:
-
-1. Install the required packages:
-   ```bash
-   npm install @modelcontextprotocol/sdk zod
-   ```
 
 ✏️ Implement your MCP server:
 
-2. In `src/tools.ts`:
+1. In `src/tools.ts`:
    - Register a tool called "slugify" that:
      - Takes a `text` parameter (string) with proper description
      - Uses the existing `createSlug` function
      - Returns the result in MCP content format
 
-3. In `src/stdio-server.ts`:
+2. In `src/stdio-server.ts`:
    - Create an `McpServer` instance named "demo-server" with version "1.0.0"
    - Register your tools using the `registerTools` function
    - Create a `StdioServerTransport` and connect it to the server
