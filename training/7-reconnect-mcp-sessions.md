@@ -187,11 +187,145 @@ if (sessionId && transports[sessionId]) {
 
 ## Solution
 
-Here's the complete implementation of session-managed HTTP MCP server:
+Here's the complete implementation of session-managed HTTP MCP server, showing the key changes from the stateless HTTP server:
 
 ### Enhanced HTTP Server with Session Management
 
-**src/http-server.ts** (updated with session management): See [complete implementation](./7-reconnect-mcp-sessions/src/http-server.ts)
+The main transformation from Step 5 (stateless) to Step 7 (session-managed) involves adding session lifecycle management and transport isolation:
+
+**src/http-server.ts** - Key changes from stateless to session-managed:
+
+```diff
+#!/usr/bin/env node --import ./loader.mjs
+import express from 'express';
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { createMcpServer } from "./mcp-server.js";
+
+const app = express();
+
+// Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+
+// Add CORS headers
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Mcp-Session-Id, MCP-Protocol-Version');
+  
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+    return;
+  }
+  
+  next();
+});
+
+-// Create a single transport for all requests (stateless mode)
+-const transport = new StreamableHTTPServerTransport({
+-  sessionIdGenerator: undefined, // Stateless mode - no session management
+-});
+-
+-// Connect the MCP server to the transport
+-await createMcpServer().connect(transport);
++// Map to store transports by session ID
++const transports: Record<string, StreamableHTTPServerTransport> = {};
+
+// POST /mcp - Client to server messages (tool calls, etc.)
+app.post('/mcp', async (req, res) => {
+  try {
+-    await transport.handleRequest(req, res, req.body);
++    const sessionId = req.headers['mcp-session-id'] as string | undefined;
++    let transport: StreamableHTTPServerTransport;
++
++    if (sessionId && transports[sessionId]) {
++      // Reuse existing transport
++      transport = transports[sessionId];
++      console.log(`♻️ Reusing existing transport for session: ${sessionId}`);
++    } else {
++      // Create new transport
++      transport = new StreamableHTTPServerTransport({
++        sessionIdGenerator: () => Math.random().toString(36).substring(2),
++        onsessioninitialized: (newSessionId: string) => {
++          console.log(`📦 Storing transport for new session: ${newSessionId}`);
++          transports[newSessionId] = transport;
++        },
++      });
++
++      // Clean up transport when closed
++      transport.onclose = () => {
++        if (transport.sessionId) {
++          console.log(`🧹 Cleaning up session: ${transport.sessionId}`);
++          delete transports[transport.sessionId];
++        }
++      };
++
++      // Create a new MCP server instance for this session
++      const mcpServer = createMcpServer();
++      await mcpServer.connect(transport);
++      console.log('🔗 MCP server connected to new transport');
++    }
++
++    // Handle the request through MCP transport
++    await transport.handleRequest(req, res, req.body);
+  } catch (error) {
+    console.error('POST /mcp error:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// Helper function for GET and DELETE requests that require existing sessions
+const handleExistingSession = async (req: express.Request, res: express.Response) => {
+  try {
+-    await transport.handleRequest(req, res);
++    const sessionId = req.headers['mcp-session-id'] as string | undefined;
++    
++    if (!sessionId || !transports[sessionId]) {
++      res.status(400).json({ error: 'Invalid or missing session ID' });
++      return;
++    }
++
++    const transport = transports[sessionId];
++    await transport.handleRequest(req, res);
+  } catch (error) {
+    console.error(`${req.method} /mcp error:`, error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+// GET /mcp - Server to client messages (SSE stream for notifications)
+app.get('/mcp', handleExistingSession);
+
+// DELETE /mcp - Session termination
+app.delete('/mcp', handleExistingSession);
+
+// Start server
+const port = 3000;
+app.listen(port, '127.0.0.1', () => {
+  console.log(`🚀 MCP HTTP Server starting on http://localhost:${port}`);
+  console.log(`📡 MCP endpoint: http://localhost:${port}/mcp`);
+});
+```
+
+**Key changes explained:**
+
+1. **Session Storage** ([line 25](./7-reconnect-mcp-sessions/src/http-server.ts#L25)): Replace single shared transport with a `Record<string, StreamableHTTPServerTransport>` map to track multiple transports by session ID
+
+2. **Session Detection** ([line 30](./7-reconnect-mcp-sessions/src/http-server.ts#L30)): Extract `mcp-session-id` header to determine if this is a new or existing session
+
+3. **Transport Reuse Logic** ([line 33-35](./7-reconnect-mcp-sessions/src/http-server.ts#L33-35)): Check if session already exists in the map and reuse the existing transport
+
+4. **Dynamic Transport Creation** ([line 37-47](./7-reconnect-mcp-sessions/src/http-server.ts#L37-47)): Create new transport instances with session ID generation and store them in the map via `onsessioninitialized` callback
+
+5. **Session Cleanup** ([line 49-55](./7-reconnect-mcp-sessions/src/http-server.ts#L49-55)): Add `onclose` handler to remove sessions from the map when transports close
+
+6. **Per-Session MCP Server** ([line 57-60](./7-reconnect-mcp-sessions/src/http-server.ts#L57-60)): Create a new MCP server instance for each session to maintain isolation
+
+7. **Session Validation** ([line 70-75](./7-reconnect-mcp-sessions/src/http-server.ts#L70-75)): Add validation for GET/DELETE requests to ensure they have valid session IDs
+
+This transformation enables multiple clients to connect simultaneously while maintaining isolated state and proper session lifecycle management.
+
+**Complete implementation**: See [src/http-server.ts](./7-reconnect-mcp-sessions/src/http-server.ts) for the full session-managed HTTP server code.
 
 ### Testing the Implementation
 

@@ -291,11 +291,97 @@ seconds: 10      → ✅ Valid
 
 ## Solution
 
-Here's the enhanced countdown tool with business rule validation:
+Here's the enhanced countdown tool with business rule validation, showing the key changes from the streaming implementation:
 
 ### Enhanced MCP Server with Validation
 
-**src/mcp-server.ts** (countdown tool with validation): See [validation implementation](./8-validating-mcp/src/mcp-server.ts#L47-L64)
+The main transformation from Step 6 (streaming) to Step 8 (validation) involves adding schema constraints and business rule validation:
+
+**src/mcp-server.ts** - Key changes from streaming to validation-enhanced:
+
+```diff
+  // Register the streaming countdown tool
+  server.registerTool(
+    "countdown",
+    {
+      title: "Countdown Timer",
+      description: "Counts down from a number with real-time progress updates",
+      inputSchema: {
+-        seconds: z.number().describe("Number of seconds to count down from")
++        seconds: z.number()
++          .int("Must be a whole number")
++          .positive("Must be greater than 0")
++          .describe("Number of seconds to count down from"),
++        message: z.string()
++          .min(1, "Message cannot be empty")
++          .default("🚀 Blastoff!")
++          .describe("Custom message to display when countdown completes")
++          .optional()
+      }
+    },
+-    async ({ seconds }, extra) => {
++    async ({ seconds, message = "🚀 Blastoff!" }, extra) => {
++      // Business rule validation: cap at 15 seconds for demo
++      if (seconds > 15) {
++        throw new Error(`Countdown duration must be 15 seconds or less for this demo. You entered ${seconds} seconds.`);
++      }
++
+      // Stream countdown progress with dual notification patterns
+      for (let i = seconds; i > 0; i--) {
+        // 1. Logging notification (for MCP Inspector debugging)
+        await extra.sendNotification({
+          method: "notifications/message",
+          params: {
+            level: "info",
+            data: `Countdown: ${i} seconds remaining`
+          }
+        });
+        
+        // 2. Progress notification (when VS Code provides progressToken)
+        if (extra._meta?.progressToken) {
+          await extra.sendNotification({
+            method: "notifications/progress",
+            params: {
+              progressToken: extra._meta.progressToken,
+              progress: seconds - i + 1,  // Current step (1, 2, 3...)
+              total: seconds,              // Total steps
+              message: `${i} seconds remaining!`
+            }
+          });
+        }
+        
+        // Wait 1 second before next update
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+-      // Return final result
++      // Return final result with custom or default message
+      return {
+        content: [{
+          type: "text",
+-          text: "🚀 Blastoff!"
++          text: message
+        }]
+      };
+    }
+  );
+```
+
+**Key changes explained:**
+
+1. **Enhanced Schema Validation** ([line 47-49](./8-validating-mcp/src/mcp-server.ts#L47-49)): Add `.int()` and `.positive()` constraints to `seconds` field with descriptive error messages for better user feedback
+
+2. **Optional Message Parameter** ([line 50-54](./8-validating-mcp/src/mcp-server.ts#L50-54)): Add customizable `message` field with validation, default value, and optional flag to allow personalized completion messages
+
+3. **Function Parameter Destructuring** ([line 57](./8-validating-mcp/src/mcp-server.ts#L57)): Update function signature to include `message` parameter with TypeScript default matching Zod schema default
+
+4. **Business Rule Validation** ([line 58-61](./8-validating-mcp/src/mcp-server.ts#L58-61)): Add runtime check to enforce 15-second limit with clear, user-friendly error message that includes the actual input value
+
+5. **Dynamic Result Message** ([line 95-99](./8-validating-mcp/src/mcp-server.ts#L95-99)): Replace hardcoded "🚀 Blastoff!" with dynamic `message` parameter to support custom completion messages
+
+This implementation demonstrates the layered validation approach: Zod schema validation for type safety and constraints, followed by business rule validation for domain-specific limits, all with clear user-facing error messages.
+
+**Complete implementation**: See [src/mcp-server.ts](./8-validating-mcp/src/mcp-server.ts) for the full validation-enhanced MCP server code.
 
 ### Key Implementation Details
 

@@ -9,8 +9,9 @@ I'd like you to update the solution sections on training steps by generating dif
 **Process**:
 1. If no specific steps/files are provided, process all steps and files listed in the "Steps to Process" section below
 2. Build a todo list for each step to be processed
-3. For each file comparison, analyze the differences and update the solution documentation
-4. Generate consistent, educational diff presentations
+3. **CRITICAL**: Always read both files before comparing to ensure accuracy
+4. For each file comparison, analyze the differences and update the solution documentation
+5. Generate consistent, educational diff presentations
 
 **File Comparison Format**:
 ```
@@ -46,10 +47,13 @@ I'd like you to update the solution sections on training steps by generating dif
    - Link to specific lines that changed (e.g., `#L5,L13,L17,L25-L26`)
 
 **Quality Guidelines**:
+- **ALWAYS read both comparison files first** to understand the actual differences
+- **NEVER assume a file is new** - check if it exists in the comparison step
 - Focus on educationally relevant changes (not just formatting)
 - Explain the "why" behind changes, not just the "what"
 - Use consistent formatting and terminology
 - Keep diffs concise but complete enough to understand the changes
+- If a file doesn't exist in comparison step, clearly state "new file creation"
 
 **Usage Examples**:
 - Process all steps: Just run the prompt without specifying parameters
@@ -113,7 +117,30 @@ const transports: Record<string, StreamableHTTPServerTransport> = {};
 
 *If no specific steps are provided as parameters, process all steps listed below:*
 
+### Step 3
+
+- src/mcp-server - step 1
+- src/stdio-server.ts - step 1
+- .vscode/mcp.json - step 1
+
+### Step 5
+
+- src/http-server.ts - step 1
+- .vscode/mcp.json - step 3
+
+### Step 6
+
+- src/mcp-server.ts - step 3
+
+### Step 7
+
+- src/http-server.ts - step 5
+
+### Step 8
+
+- src/mcp-server.ts - step 6
+
 ### Step 9
 
-- http-server - step 7
+- src/http-server.ts - step 7
 

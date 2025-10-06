@@ -15,7 +15,7 @@ function createSlug(text: string): string {
 
 // Factory function to create a new MCP server instance
 export function createMcpServer()/*: McpServer*/ {
-  // TODO: Create and configure the MCP server
+  // Create and configure the MCP server
 
 
   // Register tools

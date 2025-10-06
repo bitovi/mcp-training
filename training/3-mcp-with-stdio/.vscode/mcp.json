@@ -4,7 +4,7 @@
       "url": "https://api.githubcopilot.com/mcp/",
       "type": "http"
     },
-    "mcp-training": {
+    "mcp-training-stdio": {
       "type": "stdio",
       "command": "./src/stdio-server.ts"
     }

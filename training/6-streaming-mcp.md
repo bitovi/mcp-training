@@ -303,7 +303,6 @@ Final result: 🚀 Blastoff!
 
 **In VS Code Copilot Chat:**
 ```
-[████████████████████████████████████████] 100%
 "5 seconds remaining" → "4 seconds remaining" → ... → "🚀 Blastoff!"
 ```
 
@@ -321,7 +320,106 @@ Here's the complete implementation of the streaming countdown tool:
 
 ### Updated MCP Server with Streaming
 
-**src/mcp-server.ts** (add the countdown tool): See [countdown tool implementation](./6-streaming-mcp/src/mcp-server.ts#L47-L94)
+### Updated MCP Server with Streaming (`src/mcp-server.ts`)
+
+Add streaming capabilities and the countdown tool to your existing MCP server:
+
+```diff
+// Factory function to create a new MCP server instance
+export function createMcpServer(): McpServer {
+  // Create and configure the MCP server
+  const server = new McpServer({ 
+    name: "demo-server", 
+    version: "1.0.0" 
+-  });
++  }, {
++    capabilities: {
++      tools: {},
++      logging: {}
++    }
++  });
+
+  // Register tools
+  server.registerTool(
+    "slugify",
+    {
+      title: "Slugify",
+      description: "Convert text to a URL-friendly slug",
+      inputSchema: {
+        text: z.string().describe("The text to convert into a URL-friendly slug")
+      }
+    },
+    async ({ text }) => {
+      const slug = createSlug(text);
+      
+      return { 
+        content: [{ type: "text", text: slug }] 
+      };
+    }
+  );
+
++  // Register the streaming countdown tool
++  server.registerTool(
++    "countdown",
++    {
++      title: "Countdown Timer",
++      description: "Counts down from a number with real-time progress updates",
++      inputSchema: {
++        seconds: z.number().describe("Number of seconds to count down from")
++      }
++    },
++    async ({ seconds }, extra) => {
++      // Stream countdown progress with dual notification patterns
++      for (let i = seconds; i > 0; i--) {
++        // 1. Logging notification (for MCP Inspector debugging)
++        await extra.sendNotification({
++          method: "notifications/message",
++          params: {
++            level: "info",
++            data: `Countdown: ${i} seconds remaining`
++          }
++        });
++        
++        // 2. Progress notification (when VS Code provides progressToken)
++        if (extra._meta?.progressToken) {
++          await extra.sendNotification({
++            method: "notifications/progress",
++            params: {
++              progressToken: extra._meta.progressToken,
++              progress: seconds - i + 1,  // Current step (1, 2, 3...)
++              total: seconds,              // Total steps
++              message: `${i} seconds remaining!`
++            }
++          });
++        }
++        
++        // Wait 1 second before next update
++        await new Promise(resolve => setTimeout(resolve, 1000));
++      }
++
++      // Return final result
++      return {
++        content: [{
++          type: "text",
++          text: "🚀 Blastoff!"
++        }]
++      };
++    }
++  );
+
+  return server;
+}
+```
+
+**Key Changes:**
+1. **Lines 5-9**: Add server capabilities configuration with `logging: {}` to enable notifications
+2. **Lines 27-66**: Register new "countdown" streaming tool with dual notification patterns
+3. **Lines 34-41**: Implement logging notifications for MCP Inspector debugging
+4. **Lines 43-52**: Implement progress notifications for VS Code progress bars
+5. **Line 55**: Add 1-second delay between updates using Promise-based setTimeout
+6. **Lines 58-63**: Return final "🚀 Blastoff!" result when countdown completes
+
+📁 **Reference Implementation**: [training/6-streaming-mcp/src/mcp-server.ts](training/6-streaming-mcp/src/mcp-server.ts#L5-L9,L27-L66)
 
 ### Testing the Implementation
 

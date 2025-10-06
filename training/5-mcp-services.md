@@ -225,15 +225,111 @@ Here's the complete solution for creating a production-ready HTTP MCP server:
 npm install express @types/express
 ```
 
-### Step 2: Create HTTP Server
+### Step 2: Create HTTP Server (`src/http-server.ts`)
 
-**src/http-server.ts** (new file): See [complete implementation](./5-mcp-services/src/http-server.ts)
+Transform the skeleton HTTP server into a working Streamable HTTP implementation:
 
-### Step 5: Update VS Code Configuration
+```diff
+#!/usr/bin/env node --import ./loader.mjs
+import express from 'express';
+-// import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+-// import { createMcpServer } from "./mcp-server.js";
++import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
++import { createMcpServer } from "./mcp-server.js";
 
-**.vscode/mcp.json** (add HTTP server): See [mcp-training-http server configuration](./5-mcp-services/.vscode/mcp.json#L11-L14)
+const app = express();
 
-### Step 5: Test the Implementation
+// Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+
+// Add basic CORS headers
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Mcp-Session-Id, MCP-Protocol-Version');
+  
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+    return;
+  }
+  
+  next();
+});
+
+// Create a single transport for all requests (stateless mode)
+-
++const transport = new StreamableHTTPServerTransport({
++  sessionIdGenerator: undefined, // Stateless mode - no session management
++});
+
+// Connect the MCP server to the transport
+-
++await createMcpServer().connect(transport);
+
+// POST /mcp - Client to server messages (tool calls, etc.)
+app.post('/mcp', async (req, res) => {
+-
++  try {
++    await transport.handleRequest(req, res, req.body);
++  } catch (error) {
++    console.error('POST /mcp error:', error);
++    res.status(500).json({ error: 'Internal Server Error' });
++  }
+});
+
+// Helper function for GET and DELETE requests that require existing sessions
+const handleExistingSession = async (req: express.Request, res: express.Response) => {
+-
++  try {
++    await transport.handleRequest(req, res);
++  } catch (error) {
++    console.error(`${req.method} /mcp error:`, error);
++    res.status(500).json({ error: 'Internal Server Error' });
++  }
+};
+```
+
+**Key Changes:**
+1. **Lines 3-4**: Uncomment StreamableHTTPServerTransport and createMcpServer imports
+2. **Lines 26-28**: Create StreamableHTTPServerTransport instance in stateless mode
+3. **Line 31**: Connect MCP server to the HTTP transport
+4. **Lines 34-40**: Implement POST endpoint with proper error handling for client requests
+5. **Lines 43-49**: Implement helper function for GET/DELETE endpoints with error handling
+
+📁 **Reference Implementation**: [training/5-mcp-services/src/http-server.ts](training/5-mcp-services/src/http-server.ts#L3-L4,L26-L28,L31,L34-L40,L43-L49)
+
+### Step 3: Update VS Code Configuration (`.vscode/mcp.json`)
+
+Add HTTP server configuration alongside existing stdio server:
+
+```diff
+{
+  "servers": {
+    "github": {
+      "url": "https://api.githubcopilot.com/mcp/",
+      "type": "http"
+    },
+    "mcp-training-stdio": {
+      "type": "stdio",
+      "command": "./src/stdio-server.ts"
++    },
++    "mcp-training-http": {
++      "type": "http",
++      "url": "http://localhost:3000/mcp"
+    }
+  }
+}
+```
+
+**Key Changes:**
+1. **Lines 10-13**: Add new "mcp-training-http" server configuration
+2. **Line 11**: Configure as HTTP transport type  
+3. **Line 12**: Point to localhost HTTP endpoint on port 3000
+
+📁 **Reference Implementation**: [training/5-mcp-services/.vscode/mcp.json](training/5-mcp-services/.vscode/mcp.json#L10-L13)
+
+### Step 4: Test the Implementation
 
 **Start the HTTP server**:
 ```bash
@@ -249,52 +345,4 @@ npx @modelcontextprotocol/inspector
 ```
 
 **Test with VS Code**: Open the MCP panel and verify both servers work
-
-## Bonus: Testing with Remote Clients using ngrok
-
-Want to test your MCP server with ChatGPT or other remote systems? Use **[ngrok](https://ngrok.com/)** to create a secure tunnel:
-
-### Step 1: Install and Setup ngrok
-
-```bash
-# Install ngrok
-npm install -g ngrok
-
-# Or download from https://ngrok.com/download
-```
-
-### Step 2: Create Secure Tunnel
-
-```bash
-# In a separate terminal, create tunnel to your MCP server
-ngrok http 3000
-```
-
-This gives you a public URL like `https://abc123.ngrok.io`
-
-### Step 3: Update Security Settings
-
-**src/http-server.ts** (add ngrok origin):
-```typescript
-// Add basic CORS headers for all origins
-app.use('*', async (c, next) => {
-  c.header('Access-Control-Allow-Origin', '*');
-  c.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
-  c.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Mcp-Session-Id, MCP-Protocol-Version');
-  
-  await next();
-});
-```
-
-### Step 4: Test with Remote Clients
-
-- **MCP Inspector**: Use `https://abc123.ngrok.io/mcp` as the URL
-- **ChatGPT**: Configure your MCP server URL (if supported)
-- **Other MCP clients**: Point them to your ngrok URL
-
-⚠️ **Security Warning**: Only use ngrok for testing! Production deployments should use proper hosting with authentication.
-
-This bonus section shows how your local MCP server can be instantly accessible worldwide, demonstrating the power of Streamable HTTP transport for production deployments.
-
-💡 **What's Next**: This implementation uses a single transport for all clients (stateless mode), which works great for testing but isn't suitable for production with multiple concurrent clients. In the next step, you'll learn how to implement proper session management for handling multiple clients with isolated state.
 

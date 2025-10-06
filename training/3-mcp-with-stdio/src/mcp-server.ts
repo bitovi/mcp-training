@@ -15,6 +15,7 @@ function createSlug(text: string): string {
 
 // Factory function to create a new MCP server instance
 export function createMcpServer(): McpServer {
+  // Create and configure the MCP server
   const server = new McpServer({ 
     name: "demo-server", 
     version: "1.0.0" 
