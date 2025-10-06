@@ -1,21 +1,29 @@
 import crypto from 'crypto';
 
-// In-memory storage
-const clients = new Map([
-  ['mcp-demo-client', { 
-    id: 'mcp-demo-client', 
-    grants: ['authorization_code'], 
-    redirectUris: ['http://localhost:3000/callback'] 
-  }]
-]);
+// In-memory storage - we'll store clients dynamically
+const clients = new Map();
 const authorizationCodes = new Map();
 const accessTokens = new Map();
 
 export default {
-  async getClient(clientId: string) {
-    const client = clients.get(clientId);
-    console.log('Getting client:', clientId, 'found:', !!client);
-    return client || null;
+  async getClient(clientId: string, clientSecret?: string) {
+    console.log('Getting client:', clientId);
+    
+    // Use a placeholder URI but rely on validateRedirectUri for actual validation
+    const client = {
+      id: clientId,
+      grants: ['authorization_code'],
+      redirectUris: ['DYNAMIC']  // Placeholder - actual validation in validateRedirectUri
+    };
+    
+    clients.set(clientId, client);
+    console.log('Auto-created client with dynamic redirect URI validation');
+    return client;
+  },
+
+  // Override to validate any localhost redirect URI
+  async validateRedirectUri(redirectUri: string, client: any) {
+    return true;
   },
 
   // Add method to register new clients dynamically

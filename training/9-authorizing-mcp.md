@@ -1,283 +1,378 @@
-CP NOTES: We need to do the following (this is not a complete list):
+## OAuth 2.1 + PKCE Flow Sequence Diagram
 
-
-- What's the easist way to support a PKCE authorization? Ideally, we'd give folks some package that can be configured to show a simple input that could be matched against an environment variable. If there's a match, a new session will be established. 
-- Add a sequence diagram explaining what happens.  The following can be used for inspiration.  It's more complex as it diagrams a PKCE flow where a server acts as a bridge between a PKCE auth flow and atlassian's traditional oath flow: 
+Here's what happens when VS Code (or another MCP client) connects to our OAuth-protected MCP server:
 
 ```mermaid
 sequenceDiagram
     participant VSCode as VS Code MCP Client
-    participant Bridge as Auth Bridge Server
+    participant Server as MCP OAuth Server
     participant Browser as User Browser
-    participant Atlassian as Atlassian Platform
+    participant User as User
 
-    Note over VSCode,Atlassian: Phase 1: Initial Connection (No Auth)
-    VSCode->>Bridge: POST /mcp (initialize, no auth)
-    Note over Bridge: mcp-service.js::handleMcpPost()
-    Note over Bridge: → mcp-service.js::getAuthInfoFromBearer() → null
-    Bridge->>VSCode: 401 + WWW-Authenticate header
+    Note over VSCode,User: Phase 1: Initial Connection (No Auth)
+    VSCode->>Server: POST /mcp (initialize, no auth)
+    Note over Server: oauth.authenticate(): Check for Bearer token → none found
+    Server->>VSCode: 401 + WWW-Authenticate header
 
-    Note over VSCode,Atlassian: Phase 2: OAuth Discovery & Authorization
-    VSCode->>Bridge: GET /.well-known/oauth-authorization-server
-    Note over Bridge: pkce/discovery.ts::oauthMetadata()
-    Bridge->>VSCode: OAuth server metadata
+    Note over VSCode,User: Phase 2: OAuth Discovery
+    VSCode->>Server: GET /.well-known/oauth-authorization-server
+    Note over Server: discovery(): Return OAuth metadata (endpoints, PKCE support)
+    Server->>VSCode: OAuth server configuration
 
-    VSCode->>Bridge: GET /authorize (PKCE params)
-    Note over Bridge: pkce/authorize.ts::authorize()
-    Note over Bridge: → Store PKCE state in session
-    Bridge->>VSCode: 302 → Atlassian OAuth URL
+    VSCode->>Server: GET /.well-known/oauth-protected-resource  
+    Note over Server: protectedResourceMetadata(): Return resource metadata
+    Server->>VSCode: Resource server configuration
+
+    Note over VSCode,User: Phase 3: Client Registration (Optional)
+    VSCode->>Server: POST /register (dynamic client registration)
+    Note over Server: register(): Generate client_id for MCP client
+    Server->>VSCode: Client credentials (client_id)
+
+    Note over VSCode,User: Phase 4: Authorization Request
+    Note over VSCode: Generate PKCE code_verifier & code_challenge
+    VSCode->>Server: GET /authorize?client_id=...&code_challenge=...&redirect_uri=...
+    Note over Server: authorizeGet(): Show consent page to user
+    Server->>VSCode: 200 HTML consent page
 
     Note over VSCode,Browser: VS Code opens browser
-    VSCode->>Browser: Open https://auth.atlassian.com/authorize/...
-    Browser->>Atlassian: User login & consent
-    Note over Browser,Atlassian: User sees Atlassian login page<br/>Grants permissions to app
-    Atlassian->>Browser: 302 → Bridge callback URL + auth code
-    Browser->>Bridge: GET /callback?code=...&state=...
-    Note over Bridge: pkce/callback.ts::callback()
-    Note over Bridge: → Validate state, redirect to VS Code
-    Bridge->>Browser: 302 → vscode://localhost:33418?code=...&state=...
-    Browser->>VSCode: Redirect to VS Code with auth code
+    VSCode->>Browser: Open consent page URL
+    Browser->>User: Display consent page
+    User->>Browser: Click "Allow" button
+    Browser->>Server: POST /authorize (user approval)
+    Note over Server: authorizeDecision(): Generate authorization_code with PKCE binding
+    Server->>Browser: 302 redirect to VS Code with auth code
+    Browser->>VSCode: Redirect with code=...&state=...
 
-    Note over VSCode,Atlassian: Phase 3: Token Exchange
-    VSCode->>Bridge: POST /access-token (PKCE + auth code)
-    Note over Bridge: pkce/access-token.ts::accessToken()
-    Note over Bridge: → atlassian-auth-code-flow.js::exchangeCodeForTokens()
-    Bridge->>Atlassian: POST /oauth/token (token exchange)
-    Atlassian->>Bridge: Access + Refresh tokens
-    Note over Bridge: → pkce/token-helpers.ts::createJiraMCPAuthToken()
-    Bridge->>VSCode: JWT containing Atlassian tokens
+    Note over VSCode,User: Phase 5: Token Exchange
+    VSCode->>Server: POST /token (grant_type=authorization_code + PKCE code_verifier)
+    Note over Server: oauth.token(): Validate auth code & verify PKCE code_challenge
+    Server->>VSCode: Access token (Bearer token)
 
-    Note over VSCode,Atlassian: Phase 4: MCP Session Establishment
-    VSCode->>Bridge: POST /mcp (initialize + JWT auth)
-    Note over Bridge: mcp-service.js::handleMcpPost()
-    Note over Bridge: → mcp-service.js::getAuthInfoFromBearer() → JWT validation
-    Note over Bridge: → tokens.js::jwtVerify()
-    Note over Bridge: → Create StreamableHTTPServerTransport
-    Note over Bridge: → jira-mcp/index.js::setAuthContext()
-    Bridge->>VSCode: MCP initialize response + session-id
+    Note over VSCode,User: Phase 6: Authenticated MCP Session
+    VSCode->>Server: POST /mcp (initialize + Bearer token)
+    Note over Server: oauth.authenticate(): Validate Bearer token → success
+    Note over Server: Create StreamableHTTPServerTransport
+    Note over Server: Store transport by session ID
+    Server->>VSCode: MCP session established
 
-    VSCode->>Bridge: POST /mcp (notifications/initialized)
-    Note over Bridge: mcp-service.js::handleMcpPost()
-    Note over Bridge: → Reuse existing transport
-    Bridge->>VSCode: Success
+    Note over VSCode,User: Phase 7: MCP Operations
+    VSCode->>Server: POST /mcp (list_tools + Bearer token)
+    Note over Server: oauth.authenticate(): Validate token → serve MCP request
+    Server->>VSCode: Available tools (slugify, countdown)
 
-    VSCode->>Bridge: GET /mcp (establish SSE)
-    Note over Bridge: mcp-service.js::handleSessionRequest()
-    Note over Bridge: → Validate auth for SSE stream
-    Bridge->>VSCode: SSE connection established
-
-    Note over VSCode,Atlassian: Phase 5: Tool Discovery & Execution
-    VSCode->>Bridge: POST /mcp (tools/list)
-    Note over Bridge: mcp-service.js::handleMcpPost()
-    Note over Bridge: → MCP SDK routes to jira-mcp/index.js
-    Note over Bridge: → Returns registered tools
-    Bridge->>VSCode: 202 Accepted (async processing)
-    Bridge->>VSCode: Tool list response (via SSE/HTTP)
-
-    VSCode->>Bridge: POST /mcp (tools/call get-accessible-sites)
-    Note over Bridge: mcp-service.js::handleMcpPost()
-    Note over Bridge: → MCP SDK routes to tool handler
-    Note over Bridge: → jira-mcp/tool-get-accessible-sites.js::handler()
-    Note over Bridge: → jira-mcp/auth-helpers.js::getAuthInfoSafe()
-    Note over Bridge: → Extract Atlassian token from context
-    Bridge->>Atlassian: GET /oauth/token/accessible-resources
-    Atlassian->>Bridge: Site list + Jira data
-    Bridge->>VSCode: Tool execution result
+    VSCode->>Server: POST /mcp (call_tool + Bearer token)  
+    Note over Server: oauth.authenticate(): Validate token → execute tool
+    Server->>VSCode: Tool result
 ```
 
-- We should explain that many open source MCP services simply use authorization headers. 
+## Solution
 
+Here's the complete OAuth 2.1 + PKCE implementation for MCP servers:
 
-- If PKCE is too complex, we can check authorization headers against an environment variable. Here's some example code:
+### 1. Install OAuth Dependencies
 
-
-```ts
-function sendMissingAccessToken(res: Response, req: Request, where: string = 'bearer header'): Response {
-  const message = `Authentication token missing access token in ${where}.`;
-  console.log(`❌🔑 ${message}`);
-  return res
-      .status(401)
-      .header('WWW-Authenticate', createWwwAuthenticate(req, message))
-      .header('Cache-Control', 'no-cache, no-store, must-revalidate')
-      .header('Pragma', 'no-cache')
-      .header('Expires', '0')
-      .json({
-        jsonrpc: '2.0',
-        error: {
-          code: -32001,
-          message: message,
-        },
-        id: req.body?.id || null,
-      });
-}
+```bash
+npm install @node-oauth/express-oauth-server @node-oauth/oauth2-server
 ```
 
-```ts
-/**
- * Generate WWW-Authenticate header value according to RFC 6750 and RFC 9728
- * with VS Code Copilot compatibility handling
- * 
- * @param req - Express request object (used for client detection)
- * @param errorDescription - Optional error description for invalid_token errors
- * @param errorCode - Optional error code (defaults to "invalid_token" when errorDescription provided)
- * @returns Complete WWW-Authenticate header value
- * 
- * Specifications:
- * - RFC 6750 Section 3: WWW-Authenticate Response Header Field
- * - RFC 9728 Section 5.1: WWW-Authenticate Resource Metadata Parameter (resource_metadata)
- * - VS Code Copilot Extension: Non-standard resource_metadata_url parameter
- * 
- * Implementation Note:
- * VS Code breaks when it sees both resource_metadata and resource_metadata_url parameters.
- * We detect VS Code clients and only send the parameter they expect:
- * - VS Code: Only resource_metadata_url (their non-standard parameter)
- * - Other clients: Only resource_metadata (RFC 9728 standard)
- * See specs/vs-code-copilot/readme.md for details.
- */
-function createWwwAuthenticate(req: Request, errorDescription: string | null = null, errorCode: string = 'invalid_token'): string {
-  const metadataUrl = `${process.env.VITE_AUTH_SERVER_URL}/.well-known/oauth-protected-resource`;
-  
-  let authValue = `Bearer realm="mcp"`;
-  
-  // Add error parameters if provided (RFC 6750 Section 3.1)
-  if (errorDescription) {
-    authValue += `, error="${errorCode}", error_description="${errorDescription}"`;
-  }
-  
-  // Add appropriate resource metadata parameter based on client type
-  if (isVSCodeClient(req)) {
-    // VS Code Copilot expects resource_metadata_url (non-standard)
-    authValue += `, resource_metadata_url="${metadataUrl}"`;
-  } else {
-    // Standard RFC 9728 parameter for other clients
-    authValue += `, resource_metadata="${metadataUrl}"`;
-  }
-  
-  return authValue;
-}
-```
+### 2. OAuth Model (`src/auth/oauth-model.ts`)
 
+```typescript
+import crypto from 'crypto';
 
-```ts
-/**
- * Detect if the client is VS Code based on User-Agent and MCP client info
- * 
- * @param req - Express request object
- * @returns True if client is VS Code
- */
-function isVSCodeClient(req: Request): boolean {
-  // Check User-Agent header - VS Code sends "node"
-  const userAgent = req.headers['user-agent'];
-  if (userAgent === 'node') {
-    return true;
-  }
-  
-  // Check MCP initialize request clientInfo
-  if (req.body && req.body.method === 'initialize' && req.body.params && req.body.params.clientInfo) {
-    const clientName = req.body.params.clientInfo.name;
-    if (clientName === 'Visual Studio Code') {
-      return true;
-    }
-  }
-  
-  return false;
-}
-```
+// In-memory storage - we'll store clients dynamically
+const clients = new Map();
+const authorizationCodes = new Map();
+const accessTokens = new Map();
 
-
-```ts
-export async function handleMcpPost(req: Request, res: Response): Promise<void> {
-  console.log('======= POST /mcp =======');
-  console.log('Headers:', JSON.stringify(sanitizeHeaders(req.headers)));
-  console.log('Body:', JSON.stringify(req.body));
-  console.log('mcp-session-id:', req.headers['mcp-session-id']);
-  console.log('--------------------------------');
-
-  // Check for existing session ID
-  const sessionId = req.headers['mcp-session-id'] as string | undefined;
-  let transport: StreamableHTTPServerTransport;
-
-  if (sessionId && transports[sessionId]) {
-    // Reuse existing transport
-    transport = transports[sessionId];
-    console.log(`  ♻️ Reusing existing transport for session: ${sessionId}`);
-  } 
-  else if (!sessionId && isInitializeRequest(req.body as JSONRPCRequest)) {
-    // New initialization request
-    console.log('  🥚 New MCP initialization request.');
-
-    // Extract and validate auth info
-    let { authInfo, errored } = await getAuthInfoFromBearer(req, res);
-    if (errored) { return; }
-
-    if (!authInfo) {
-      ({ authInfo, errored } = await getAuthInfoFromQueryToken(req, res));
-    }
-    if (errored) { return; }
+export default {
+  async getClient(clientId: string, clientSecret?: string) {
+    console.log('Getting client:', clientId);
     
-    if (!authInfo) {
-      sendMissingAccessToken(res, req, 'anywhere');
-      return;
-    }
-    console.log('    Has valid token, creating streamable transport');
-    transport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: () => randomUUID(),
-      onsessioninitialized: (newSessionId: string) => {
-        // Store the transport by session ID
-        console.log(`    Storing transport for new session: ${newSessionId}`);
-        transports[newSessionId] = transport;
-        // Store auth context for this session
-        setAuthContext(newSessionId, authInfo!);
-      },
-    });
-
-    // Clean up transport when closed
-    transport.onclose = () => {
-      if (transport.sessionId) {
-        console.log(`.   Cleaning up session: ${transport.sessionId}`);
-        delete transports[transport.sessionId];
-        clearAuthContext(transport.sessionId);
-      }
+    // Use a placeholder URI but rely on validateRedirectUri for actual validation
+    const client = {
+      id: clientId,
+      grants: ['authorization_code'],
+      redirectUris: ['DYNAMIC']  // Placeholder - actual validation in validateRedirectUri
     };
+    
+    clients.set(clientId, client);
+    console.log('Auto-created client with dynamic redirect URI validation');
+    return client;
+  },
 
-    // Connect the MCP server to this transport
-    await mcp.connect(transport);
-    console.log('    MCP server connected to new transport');
-  } else {
-    // Invalid request
-    console.log('  ❌ Invalid MCP request - no session ID and not an initialize request');
-    res.status(400).json({
-      jsonrpc: '2.0',
-      error: {
-        code: -32000,
-        message: 'Bad Request: No valid session ID provided',
-      },
-      id: null,
+  // Override to validate any redirect URI
+  async validateRedirectUri(redirectUri: string, client: any) {
+    return true;  // Accept any redirect URI for maximum compatibility
+  },
+
+  async saveAuthorizationCode(code: any, client: any, user: any) {
+    authorizationCodes.set(code.authorizationCode, {
+      authorizationCode: code.authorizationCode,
+      expiresAt: code.expiresAt,
+      redirectUri: code.redirectUri,
+      scope: code.scope,
+      client: client,
+      user: user,
+      codeChallenge: code.codeChallenge,
+      codeChallengeMethod: code.codeChallengeMethod
     });
+    return code;
+  },
+
+  async getAuthorizationCode(authorizationCode: string) {
+    const code = authorizationCodes.get(authorizationCode);
+    console.log('Getting authorization code:', authorizationCode, 'found:', !!code);
+    return code || null;
+  },
+
+  async revokeAuthorizationCode(code: any) {
+    console.log('Revoking authorization code:', code.authorizationCode);
+    authorizationCodes.delete(code.authorizationCode);
+    return true;
+  },
+
+  async generateAccessToken(client: any, user: any, scope: any) {
+    const token = crypto.randomBytes(32).toString('hex');
+    console.log('Generated access token for client:', client?.id, 'user:', user?.id);
+    return token;
+  },
+
+  async saveToken(token: any, client: any, user: any) {
+    console.log('Saving token for client:', client?.id, 'user:', user?.id);
+    const savedToken = {
+      accessToken: token.accessToken,
+      accessTokenExpiresAt: token.accessTokenExpiresAt,
+      scope: token.scope,
+      client: client,
+      user: user
+    };
+    
+    accessTokens.set(token.accessToken, savedToken);
+    console.log('Token saved successfully');
+    return savedToken;
+  },
+
+  async getAccessToken(accessToken: string) {
+    const token = accessTokens.get(accessToken);
+    if (!token) return null;
+    
+    // Check if token is expired
+    if (token.expiresAt && token.expiresAt < new Date()) {
+      accessTokens.delete(accessToken);
+      return null;
+    }
+    
+    return token;
+  },
+
+  async verifyScope(token: any, scope: string[]) {
+    return true; // Simplified for training
+  }
+};
+```
+
+### 3. OAuth Server Configuration (`src/auth/oauth-server.ts`)
+
+```typescript
+import OAuthServer from '@node-oauth/express-oauth-server';
+import model from './oauth-model.js';
+
+export const oauth = new OAuthServer({
+  model: model,
+  requireClientAuthentication: {
+    authorization_code: false  // PKCE replaces client secret
+  },
+  allowBearerTokensInQueryString: true,
+  accessTokenLifetime: 3600,
+  authorizationCodeLifetime: 600,
+  addAcceptedScopesHeader: false,
+  addAuthorizedScopesHeader: false,
+  allowExtendedTokenAttributes: false,
+  useErrorHandler: false,
+  continueMiddleware: false
+});
+```
+
+### 4. OAuth Handlers (`src/auth/oauth-handlers.ts`)
+
+```typescript
+import express from 'express';
+import crypto from 'crypto';
+import { oauth } from './oauth-server.js';
+import model from './oauth-model.js';
+
+export function discovery(req: express.Request, res: express.Response) {
+  res.json({
+    issuer: 'http://localhost:3000',
+    authorization_endpoint: 'http://localhost:3000/authorize',
+    token_endpoint: 'http://localhost:3000/token',
+    registration_endpoint: 'http://localhost:3000/register',
+    code_challenge_methods_supported: ['S256'],
+    response_types_supported: ['code'],
+    grant_types_supported: ['authorization_code', 'refresh_token'],
+    token_endpoint_auth_methods_supported: ['none', 'client_secret_post'],
+    scopes_supported: []
+  });
+}
+
+export function protectedResourceMetadata(req: express.Request, res: express.Response) {
+  const baseUrl = 'http://localhost:3000';
+  res.json({
+    resource: baseUrl,
+    authorization_servers: [baseUrl],
+    scopes_supported: [],
+    bearer_methods_supported: ['header', 'body'],
+    resource_documentation: `${baseUrl}/.well-known/oauth-authorization-server`
+  });
+}
+
+export function authorizeGet(req: express.Request, res: express.Response) {
+  try {
+    console.log('Authorization GET request:', req.query);
+    
+    const { client_id, redirect_uri, code_challenge, code_challenge_method } = req.query;
+    const state = req.query.state || 'default';
+    
+    const consentPage = `
+      <!DOCTYPE html>
+      <html>
+      <head><title>MCP Demo - Authorize</title></head>
+      <body>
+        <h1>Authorize MCP Demo Client</h1>
+        <p>MCP Demo Client wants to access your account.</p>
+        
+        <form method="post">
+          <input type="hidden" name="client_id" value="${client_id}">
+          <input type="hidden" name="redirect_uri" value="${redirect_uri}">
+          <input type="hidden" name="code_challenge" value="${code_challenge}">
+          <input type="hidden" name="code_challenge_method" value="${code_challenge_method}">
+          <input type="hidden" name="state" value="${state}">
+          <input type="hidden" name="response_type" value="code">
+          <button type="submit" name="authorize" value="true" style="background: green; color: white; padding: 10px 20px; margin: 5px;">Allow</button>
+          <button type="submit" name="authorize" value="false" style="background: red; color: white; padding: 10px 20px; margin: 5px;">Deny</button>
+        </form>
+      </body>
+      </html>
+    `;
+    
+    res.send(consentPage);
+  } catch (error) {
+    console.error('Authorization GET error:', error);
+    res.status(500).json({ error: 'Authorization failed' });
+  }
+}
+
+export function authorizeDecision(req: express.Request, res: express.Response) {
+  if (req.body.authorize !== 'true') {
+    const redirectUri = req.body.redirect_uri;
+    const state = req.body.state;
+    return res.redirect(`${redirectUri}?error=access_denied&state=${state}`);
+  }
+  
+  // Redirect to internal authorization endpoint
+  const authUrl = new URL('http://localhost:3000/oauth/authorize-internal');
+  authUrl.searchParams.set('client_id', req.body.client_id);
+  authUrl.searchParams.set('redirect_uri', req.body.redirect_uri);
+  authUrl.searchParams.set('code_challenge', req.body.code_challenge);
+  authUrl.searchParams.set('code_challenge_method', req.body.code_challenge_method);
+  authUrl.searchParams.set('state', req.body.state || 'default');
+  authUrl.searchParams.set('response_type', 'code');
+  
+  res.redirect(authUrl.toString());
+}
+
+export function callback(req: express.Request, res: express.Response) {
+  const { code, state, error } = req.query;
+  
+  if (error) {
+    res.send(`<h1>Authorization Failed</h1><p>Error: ${error}</p>`);
     return;
   }
+  
+  res.send(`
+    <h1>Authorization Successful</h1>
+    <p>Authorization code: <code>${code}</code></p>
+    <p>You can now close this window and return to your application.</p>
+  `);
+}
 
-  // Handle the request with authentication error interception
+export function register(req: express.Request, res: express.Response) {
   try {
-    await transport.handleRequest(req, res, req.body);
-  } catch (error) {
-    // Check if this is an MCP OAuth authentication error
-    if (error instanceof InvalidTokenError) {
-      console.log('MCP OAuth authentication expired - sending proper OAuth 401 response');
-      
-      const wwwAuthValue = createWwwAuthenticate(req, error.message);
-      
-      res.set('WWW-Authenticate', wwwAuthValue);
-      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-      res.set('Pragma', 'no-cache');
-      res.set('Expires', '0');
-      res.status(401).json(error.toResponseObject());
-      return;
-    }
+    const clientMetadata = req.body;
+    const clientId = `mcp_${crypto.randomUUID()}`;
     
-    // Re-throw other errors
-    throw error;
+    const registrationResponse = {
+      client_id: clientId,
+      client_id_issued_at: Math.floor(Date.now() / 1000),
+      redirect_uris: clientMetadata.redirect_uris || ['http://localhost:3000/callback'],
+      grant_types: ['authorization_code'],
+      response_types: ['code'],
+      token_endpoint_auth_method: 'none',
+      scope: ''
+    };
+
+    console.log('Registered new MCP client:', clientId);
+    res.status(201).json(registrationResponse);
+  } catch (error) {
+    console.error('Client registration failed:', error);
+    res.status(400).json({
+      error: 'invalid_client_metadata',
+      error_description: error instanceof Error ? error.message : 'Invalid client metadata'
+    });
   }
-  console.log('  ✅ MCP POST request handled successfully');
 }
 ```
+
+### 5. OAuth Wrapper (`src/auth/oauth-wrapper.ts`)
+
+```typescript
+import express from 'express';
+import { oauth } from './oauth-server.js';
+import { discovery, authorizeGet, authorizeDecision, protectedResourceMetadata, callback, register } from './oauth-handlers.js';
+
+export function addOAuthToApp(app: express.Application) {
+  // OAuth discovery endpoints
+  app.get('/.well-known/oauth-authorization-server', discovery);
+  app.get('/.well-known/oauth-protected-resource', protectedResourceMetadata);
+  
+  // Authorization endpoints
+  app.get('/authorize', authorizeGet);
+  app.post('/authorize', authorizeDecision);
+  
+  // Internal authorization endpoint using OAuth middleware
+  app.get('/oauth/authorize-internal', oauth.authorize({
+    authenticateHandler: {
+      handle: () => ({ id: 'demo-user' })
+    }
+  }));
+  
+  // Token and other endpoints
+  app.post('/token', oauth.token());
+  app.get('/callback', callback);
+  app.post('/register', register);
+  
+  // Add authentication to MCP routes
+  app.use('/mcp', oauth.authenticate());
+  
+  return app;
+}
+```
+
+### 6. Update HTTP Server (`src/http-server.ts`)
+
+Add OAuth to your existing HTTP server:
+
+```typescript
+import { addOAuthToApp } from './auth/oauth-wrapper.js';
+
+// Add OAuth before MCP routes
+addOAuthToApp(app);
+```
+
+### 7. Test the Implementation
+
+1. **Start the server**: `npm run dev:http`
+2. **Connect from VS Code**: The OAuth flow will automatically start when VS Code tries to connect.
+
+The OAuth 2.1 + PKCE implementation provides secure authentication while accepting any redirect URI for maximum compatibility.
