@@ -2,6 +2,7 @@
 import express from 'express';
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { createMcpServer } from "./mcp-server.js";
+import { addOAuthToApp } from "./auth/oauth-wrapper.js";
 
 const app = express();
 
@@ -9,19 +10,21 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Add CORS headers
+// Add CORS headers FIRST
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Mcp-Session-Id, MCP-Protocol-Version');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Mcp-Session-Id, MCP-Protocol-Version, WWW-Authenticate');
   
   if (req.method === 'OPTIONS') {
     res.sendStatus(200);
     return;
   }
-  
   next();
 });
+
+// Add OAuth endpoints and authentication AFTER CORS
+addOAuthToApp(app);
 
 // Map to store transports by session ID
 const transports: Record<string, StreamableHTTPServerTransport> = {};

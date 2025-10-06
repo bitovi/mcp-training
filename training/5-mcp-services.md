@@ -231,7 +231,7 @@ npm install express @types/express
 
 ### Step 5: Update VS Code Configuration
 
-**.vscode/mcp.json** (add HTTP server): See [mcp-training-http server configuration](./5-mcp-services/.vscode/mcp.json#L10-L13)
+**.vscode/mcp.json** (add HTTP server): See [mcp-training-http server configuration](./5-mcp-services/.vscode/mcp.json#L11-L14)
 
 ### Step 5: Test the Implementation
 

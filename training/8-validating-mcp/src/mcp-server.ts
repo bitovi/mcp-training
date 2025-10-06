@@ -54,10 +54,15 @@ export function createMcpServer(): McpServer {
         seconds: z.number()
           .int("Must be a whole number")
           .positive("Must be greater than 0")
-          .describe("Number of seconds to count down from")
+          .describe("Number of seconds to count down from"),
+        message: z.string()
+          .min(1, "Message cannot be empty")
+          .default("🚀 Blastoff!")
+          .describe("Custom message to display when countdown completes")
+          .optional()
       }
     },
-    async ({ seconds }, extra) => {
+    async ({ seconds, message = "🚀 Blastoff!" }, extra) => {
       // Business rule validation: cap at 15 seconds for demo
       if (seconds > 15) {
         throw new Error(`Countdown duration must be 15 seconds or less for this demo. You entered ${seconds} seconds.`);
@@ -91,11 +96,11 @@ export function createMcpServer(): McpServer {
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
 
-      // Return final result
+      // Return final result with custom or default message
       return {
         content: [{
           type: "text",
-          text: "🚀 Blastoff!"
+          text: message
         }]
       };
     }
