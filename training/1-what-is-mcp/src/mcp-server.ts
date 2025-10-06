@@ -13,14 +13,14 @@ function createSlug(text: string): string {
   return slug;
 }
 
-// TODO: Factory function to create a new MCP server instance
+// Factory function to create a new MCP server instance
 export function createMcpServer()/*: McpServer*/ {
   // TODO: Create and configure the MCP server
 
 
-  // TODO: Register tools
+  // Register tools
 
 
-  // TODO: Return the configured server
+  // Return the configured server
   //return server;
 }

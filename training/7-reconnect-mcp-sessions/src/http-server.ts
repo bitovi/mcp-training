@@ -97,5 +97,4 @@ const port = 3000;
 app.listen(port, '127.0.0.1', () => {
   console.log(`🚀 MCP HTTP Server starting on http://localhost:${port}`);
   console.log(`📡 MCP endpoint: http://localhost:${port}/mcp`);
-  console.log(`🔍 Test with: npx @modelcontextprotocol/inspector`);
 });

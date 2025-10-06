@@ -3,13 +3,13 @@
 import {createMcpServer} from "./mcp-server.js";
 
 try {
-  // TODO: Create stdio transport
+  // Create stdio transport
   
 
-  // TODO: Connect server to transport
+  // Connect server to transport
   
 
-  // TODO: Log to stderr so it doesn't interfere with MCP protocol
+  // Log to stderr so it doesn't interfere with MCP protocol
   
 } catch (error) {
   console.error("Server error:", error);

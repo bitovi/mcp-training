@@ -1,5 +1,9 @@
 {
   "servers": {
+    "github": {
+      "url": "https://api.githubcopilot.com/mcp/",
+      "type": "http"
+    },
     "mcp-training": {
       "type": "stdio",
       "command": "./src/stdio-server.ts"

@@ -361,14 +361,50 @@ export function addOAuthToApp(app: express.Application) {
 
 ### 6. Update HTTP Server (`src/http-server.ts`)
 
-Add OAuth to your existing HTTP server:
+Changes to integrate OAuth into your existing HTTP server from step 7:
 
-```typescript
-import { addOAuthToApp } from './auth/oauth-wrapper.js';
+```diff
+#!/usr/bin/env node --import ./loader.mjs
+import express from 'express';
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { createMcpServer } from "./mcp-server.js";
++ import { addOAuthToApp } from "./auth/oauth-wrapper.js";
 
-// Add OAuth before MCP routes
-addOAuthToApp(app);
+const app = express();
+
+// Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+
+- // Add CORS headers
++ // Add CORS headers FIRST
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+-   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Mcp-Session-Id, MCP-Protocol-Version');
++   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Mcp-Session-Id, MCP-Protocol-Version, WWW-Authenticate');
+  
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+    return;
+  }
+  next();
+});
+
++ // Add OAuth endpoints and authentication AFTER CORS
++ addOAuthToApp(app);
+
+// Map to store transports by session ID
+const transports: Record<string, StreamableHTTPServerTransport> = {};
 ```
+
+**Key Changes:**
+1. **Line 5**: Import `addOAuthToApp` from the OAuth wrapper
+2. **Line 13**: Update comment to emphasize CORS comes first
+3. **Line 17**: Add `WWW-Authenticate` header to CORS configuration for OAuth responses
+4. **Lines 25-26**: Add OAuth endpoints and authentication middleware after CORS
+
+📁 **Reference Implementation**: [training/9-authorizing-mcp/src/http-server.ts](training/9-authorizing-mcp/src/http-server.ts#L5,L13,L17,L25-L26)
 
 ### 7. Test the Implementation
 
