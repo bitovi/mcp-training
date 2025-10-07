@@ -210,7 +210,7 @@ The main transformation from Step 5 (stateless) to Step 7 (session-managed) invo
 **src/http-server.ts** - Key changes from stateless to session-managed:
 
 ```diff
-#!/usr/bin/env node --import ./loader.mjs
+#!/usr/bin/env -S node --import ./loader.mjs
 import express from 'express';
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { createMcpServer } from "./mcp-server.js";

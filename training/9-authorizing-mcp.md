@@ -394,7 +394,7 @@ export function addOAuthToApp(app: express.Application) {
 Changes to integrate OAuth into your existing HTTP server from step 7:
 
 ```diff
-#!/usr/bin/env node --import ./loader.mjs
+#!/usr/bin/env -S node --import ./loader.mjs
 import express from 'express';
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { createMcpServer } from "./mcp-server.js";
