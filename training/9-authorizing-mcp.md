@@ -19,7 +19,7 @@ sequenceDiagram
     Note over Server: discovery(): Return OAuth metadata (endpoints, PKCE support)
     Server->>VSCode: OAuth server configuration
 
-    VSCode->>Server: GET /.well-known/oauth-protected-resource  
+    VSCode->>Server: GET /.well-known/oauth-protected-resource
     Note over Server: protectedResourceMetadata(): Return resource metadata
     Server->>VSCode: Resource server configuration
 
@@ -60,7 +60,7 @@ sequenceDiagram
     Note over Server: oauth.authenticate(): Validate token → serve MCP request
     Server->>VSCode: Available tools (slugify, countdown)
 
-    VSCode->>Server: POST /mcp (call_tool + Bearer token)  
+    VSCode->>Server: POST /mcp (call_tool + Bearer token)
     Note over Server: oauth.authenticate(): Validate token → execute tool
     Server->>VSCode: Tool result
 ```
@@ -78,7 +78,7 @@ npm install @node-oauth/express-oauth-server @node-oauth/oauth2-server
 ### 2. OAuth Model (`src/auth/oauth-model.ts`)
 
 ```typescript
-import crypto from 'crypto';
+import crypto from "crypto";
 
 // In-memory storage - we'll store clients dynamically
 const clients = new Map();
@@ -87,23 +87,23 @@ const accessTokens = new Map();
 
 export default {
   async getClient(clientId: string, clientSecret?: string) {
-    console.log('Getting client:', clientId);
-    
+    console.log("Getting client:", clientId);
+
     // Use a placeholder URI but rely on validateRedirectUri for actual validation
     const client = {
       id: clientId,
-      grants: ['authorization_code'],
-      redirectUris: ['DYNAMIC']  // Placeholder - actual validation in validateRedirectUri
+      grants: ["authorization_code"],
+      redirectUris: ["DYNAMIC"], // Placeholder - actual validation in validateRedirectUri
     };
-    
+
     clients.set(clientId, client);
-    console.log('Auto-created client with dynamic redirect URI validation');
+    console.log("Auto-created client with dynamic redirect URI validation");
     return client;
   },
 
   // Override to validate any redirect URI
   async validateRedirectUri(redirectUri: string, client: any) {
-    return true;  // Accept any redirect URI for maximum compatibility
+    return true; // Accept any redirect URI for maximum compatibility
   },
 
   async saveAuthorizationCode(code: any, client: any, user: any) {
@@ -115,73 +115,83 @@ export default {
       client: client,
       user: user,
       codeChallenge: code.codeChallenge,
-      codeChallengeMethod: code.codeChallengeMethod
+      codeChallengeMethod: code.codeChallengeMethod,
     });
     return code;
   },
 
   async getAuthorizationCode(authorizationCode: string) {
     const code = authorizationCodes.get(authorizationCode);
-    console.log('Getting authorization code:', authorizationCode, 'found:', !!code);
+    console.log(
+      "Getting authorization code:",
+      authorizationCode,
+      "found:",
+      !!code
+    );
     return code || null;
   },
 
   async revokeAuthorizationCode(code: any) {
-    console.log('Revoking authorization code:', code.authorizationCode);
+    console.log("Revoking authorization code:", code.authorizationCode);
     authorizationCodes.delete(code.authorizationCode);
     return true;
   },
 
   async generateAccessToken(client: any, user: any, scope: any) {
-    const token = crypto.randomBytes(32).toString('hex');
-    console.log('Generated access token for client:', client?.id, 'user:', user?.id);
+    const token = crypto.randomBytes(32).toString("hex");
+    console.log(
+      "Generated access token for client:",
+      client?.id,
+      "user:",
+      user?.id
+    );
     return token;
   },
 
   async saveToken(token: any, client: any, user: any) {
-    console.log('Saving token for client:', client?.id, 'user:', user?.id);
+    console.log("Saving token for client:", client?.id, "user:", user?.id);
     const savedToken = {
       accessToken: token.accessToken,
       accessTokenExpiresAt: token.accessTokenExpiresAt,
       scope: token.scope,
       client: client,
-      user: user
+      user: user,
     };
-    
+
     accessTokens.set(token.accessToken, savedToken);
-    console.log('Token saved successfully');
+    console.log("Token saved successfully");
     return savedToken;
   },
 
   async getAccessToken(accessToken: string) {
     const token = accessTokens.get(accessToken);
     if (!token) return null;
-    
+
     // Check if token is expired
     if (token.expiresAt && token.expiresAt < new Date()) {
       accessTokens.delete(accessToken);
       return null;
     }
-    
+
     return token;
   },
 
   async verifyScope(token: any, scope: string[]) {
     return true; // Simplified for training
-  }
+  },
 };
 ```
 
 ### 3. OAuth Server Configuration (`src/auth/oauth-server.ts`)
 
 ```typescript
-import OAuthServer from '@node-oauth/express-oauth-server';
-import model from './oauth-model.js';
+import OAuthServer from "@node-oauth/express-oauth-server";
+import model from "./oauth-model.js";
 
 export const oauth = new OAuthServer({
   model: model,
   requireClientAuthentication: {
-    authorization_code: false  // PKCE replaces client secret
+    authorization_code: false, // PKCE replaces client secret
   },
   allowBearerTokensInQueryString: true,
   accessTokenLifetime: 3600,
@@ -190,50 +200,54 @@ export const oauth = new OAuthServer({
   addAuthorizedScopesHeader: false,
   allowExtendedTokenAttributes: false,
   useErrorHandler: false,
-  continueMiddleware: false
+  continueMiddleware: false,
 });
 ```
 
 ### 4. OAuth Handlers (`src/auth/oauth-handlers.ts`)
 
 ```typescript
-import express from 'express';
-import crypto from 'crypto';
-import { oauth } from './oauth-server.js';
-import model from './oauth-model.js';
+import express from "express";
+import crypto from "crypto";
+import { oauth } from "./oauth-server.js";
+import model from "./oauth-model.js";
 
 export function discovery(req: express.Request, res: express.Response) {
   res.json({
-    issuer: 'http://localhost:3000',
-    authorization_endpoint: 'http://localhost:3000/authorize',
-    token_endpoint: 'http://localhost:3000/token',
-    registration_endpoint: 'http://localhost:3000/register',
-    code_challenge_methods_supported: ['S256'],
-    response_types_supported: ['code'],
-    grant_types_supported: ['authorization_code', 'refresh_token'],
-    token_endpoint_auth_methods_supported: ['none', 'client_secret_post'],
-    scopes_supported: []
+    issuer: "http://localhost:3000",
+    authorization_endpoint: "http://localhost:3000/authorize",
+    token_endpoint: "http://localhost:3000/token",
+    registration_endpoint: "http://localhost:3000/register",
+    code_challenge_methods_supported: ["S256"],
+    response_types_supported: ["code"],
+    grant_types_supported: ["authorization_code", "refresh_token"],
+    token_endpoint_auth_methods_supported: ["none", "client_secret_post"],
+    scopes_supported: [],
   });
 }
 
-export function protectedResourceMetadata(req: express.Request, res: express.Response) {
-  const baseUrl = 'http://localhost:3000';
+export function protectedResourceMetadata(
+  req: express.Request,
+  res: express.Response
+) {
+  const baseUrl = "http://localhost:3000";
   res.json({
     resource: baseUrl,
     authorization_servers: [baseUrl],
     scopes_supported: [],
-    bearer_methods_supported: ['header', 'body'],
-    resource_documentation: `${baseUrl}/.well-known/oauth-authorization-server`
+    bearer_methods_supported: ["header", "body"],
+    resource_documentation: `${baseUrl}/.well-known/oauth-authorization-server`,
   });
 }
 
 export function authorizeGet(req: express.Request, res: express.Response) {
   try {
-    console.log('Authorization GET request:', req.query);
-    
-    const { client_id, redirect_uri, code_challenge, code_challenge_method } = req.query;
-    const state = req.query.state || 'default';
-    
+    console.log("Authorization GET request:", req.query);
+
+    const { client_id, redirect_uri, code_challenge, code_challenge_method } =
+      req.query;
+    const state = req.query.state || "default";
+
     const consentPage = `
       <!DOCTYPE html>
       <html>
@@ -255,41 +269,44 @@ export function authorizeGet(req: express.Request, res: express.Response) {
       </body>
       </html>
     `;
-    
+
     res.send(consentPage);
   } catch (error) {
-    console.error('Authorization GET error:', error);
-    res.status(500).json({ error: 'Authorization failed' });
+    console.error("Authorization GET error:", error);
+    res.status(500).json({ error: "Authorization failed" });
   }
 }
 
 export function authorizeDecision(req: express.Request, res: express.Response) {
-  if (req.body.authorize !== 'true') {
+  if (req.body.authorize !== "true") {
     const redirectUri = req.body.redirect_uri;
     const state = req.body.state;
     return res.redirect(`${redirectUri}?error=access_denied&state=${state}`);
   }
-  
+
   // Redirect to internal authorization endpoint
-  const authUrl = new URL('http://localhost:3000/oauth/authorize-internal');
-  authUrl.searchParams.set('client_id', req.body.client_id);
-  authUrl.searchParams.set('redirect_uri', req.body.redirect_uri);
-  authUrl.searchParams.set('code_challenge', req.body.code_challenge);
-  authUrl.searchParams.set('code_challenge_method', req.body.code_challenge_method);
-  authUrl.searchParams.set('state', req.body.state || 'default');
-  authUrl.searchParams.set('response_type', 'code');
-  
+  const authUrl = new URL("http://localhost:3000/oauth/authorize-internal");
+  authUrl.searchParams.set("client_id", req.body.client_id);
+  authUrl.searchParams.set("redirect_uri", req.body.redirect_uri);
+  authUrl.searchParams.set("code_challenge", req.body.code_challenge);
+  authUrl.searchParams.set(
+    "code_challenge_method",
+    req.body.code_challenge_method
+  );
+  authUrl.searchParams.set("state", req.body.state || "default");
+  authUrl.searchParams.set("response_type", "code");
+
   res.redirect(authUrl.toString());
 }
 
 export function callback(req: express.Request, res: express.Response) {
   const { code, state, error } = req.query;
-  
+
   if (error) {
     res.send(`<h1>Authorization Failed</h1><p>Error: ${error}</p>`);
     return;
   }
-  
+
   res.send(`
     <h1>Authorization Successful</h1>
     <p>Authorization code: <code>${code}</code></p>
@@ -301,24 +318,27 @@ export function register(req: express.Request, res: express.Response) {
   try {
     const clientMetadata = req.body;
     const clientId = `mcp_${crypto.randomUUID()}`;
-    
+
     const registrationResponse = {
       client_id: clientId,
       client_id_issued_at: Math.floor(Date.now() / 1000),
-      redirect_uris: clientMetadata.redirect_uris || ['http://localhost:3000/callback'],
-      grant_types: ['authorization_code'],
-      response_types: ['code'],
-      token_endpoint_auth_method: 'none',
-      scope: ''
+      redirect_uris: clientMetadata.redirect_uris || [
+        "http://localhost:3000/callback",
+      ],
+      grant_types: ["authorization_code"],
+      response_types: ["code"],
+      token_endpoint_auth_method: "none",
+      scope: "",
     };
 
-    console.log('Registered new MCP client:', clientId);
+    console.log("Registered new MCP client:", clientId);
     res.status(201).json(registrationResponse);
   } catch (error) {
-    console.error('Client registration failed:', error);
+    console.error("Client registration failed:", error);
     res.status(400).json({
-      error: 'invalid_client_metadata',
-      error_description: error instanceof Error ? error.message : 'Invalid client metadata'
+      error: "invalid_client_metadata",
+      error_description:
+        error instanceof Error ? error.message : "Invalid client metadata",
     });
   }
 }
@@ -327,34 +347,44 @@ export function register(req: express.Request, res: express.Response) {
 ### 5. OAuth Wrapper (`src/auth/oauth-wrapper.ts`)
 
 ```typescript
-import express from 'express';
-import { oauth } from './oauth-server.js';
-import { discovery, authorizeGet, authorizeDecision, protectedResourceMetadata, callback, register } from './oauth-handlers.js';
+import express from "express";
+import { oauth } from "./oauth-server.js";
+import {
+  discovery,
+  authorizeGet,
+  authorizeDecision,
+  protectedResourceMetadata,
+  callback,
+  register,
+} from "./oauth-handlers.js";
 
 export function addOAuthToApp(app: express.Application) {
   // OAuth discovery endpoints
-  app.get('/.well-known/oauth-authorization-server', discovery);
-  app.get('/.well-known/oauth-protected-resource', protectedResourceMetadata);
-  
+  app.get("/.well-known/oauth-authorization-server", discovery);
+  app.get("/.well-known/oauth-protected-resource", protectedResourceMetadata);
+
   // Authorization endpoints
-  app.get('/authorize', authorizeGet);
-  app.post('/authorize', authorizeDecision);
-  
+  app.get("/authorize", authorizeGet);
+  app.post("/authorize", authorizeDecision);
+
   // Internal authorization endpoint using OAuth middleware
-  app.get('/oauth/authorize-internal', oauth.authorize({
-    authenticateHandler: {
-      handle: () => ({ id: 'demo-user' })
-    }
-  }));
-  
+  app.get(
+    "/oauth/authorize-internal",
+    oauth.authorize({
+      authenticateHandler: {
+        handle: () => ({ id: "demo-user" }),
+      },
+    })
+  );
+
   // Token and other endpoints
-  app.post('/token', oauth.token());
-  app.get('/callback', callback);
-  app.post('/register', register);
-  
+  app.post("/token", oauth.token());
+  app.get("/callback", callback);
+  app.post("/register", register);
+
   // Add authentication to MCP routes
-  app.use('/mcp', oauth.authenticate());
-  
+  app.use("/mcp", oauth.authenticate());
+
   return app;
 }
 ```
@@ -383,7 +413,7 @@ app.use((req, res, next) => {
   res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
 -   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Mcp-Session-Id, MCP-Protocol-Version');
 +   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Mcp-Session-Id, MCP-Protocol-Version, WWW-Authenticate');
-  
+
   if (req.method === 'OPTIONS') {
     res.sendStatus(200);
     return;
@@ -399,6 +429,7 @@ const transports: Record<string, StreamableHTTPServerTransport> = {};
 ```
 
 **Key Changes:**
+
 1. **Line 5**: Import `addOAuthToApp` from the OAuth wrapper
 2. **Line 13**: Update comment to emphasize CORS comes first
 3. **Line 17**: Add `WWW-Authenticate` header to CORS configuration for OAuth responses
@@ -415,24 +446,5 @@ The OAuth 2.1 + PKCE implementation provides secure authentication while accepti
 
 ## Next Steps
 
-Congratulations! 🎉 You've completed the full MCP training journey and built a production-ready MCP server with:
-
-✅ **Stdio and HTTP transports** for local development and production deployment  
-✅ **Real-time streaming** with progress notifications and SSE  
-✅ **Session management** for multiple concurrent clients  
-✅ **Comprehensive validation** with schema and business rules  
-✅ **OAuth 2.1 + PKCE authentication** for secure access  
-
-**What's next?**
-- **Deploy your server** to Vercel, Render, or your preferred hosting platform
-- **Build domain-specific tools** for your use cases (databases, APIs, file systems)
-- **Explore the MCP ecosystem** and integrate with other services
-- **Contribute to the MCP community** by sharing your servers and tools
-
-**Additional Resources:**
-- [MCP Specification](https://spec.modelcontextprotocol.io/) - Full technical specification
-- [MCP SDK Documentation](https://modelcontextprotocol.io/docs/sdk) - SDK guides and API reference
-- [MCP Server Examples](https://github.com/modelcontextprotocol/servers) - Production server implementations
-- [MCP Community](https://github.com/modelcontextprotocol) - Open source projects and discussions
-
-You're now ready to build amazing MCP integrations! 🚀
+Congratulations! 🎉 You've completed the full MCP training journey.
+You're now ready to build amazing MCP integrations!
