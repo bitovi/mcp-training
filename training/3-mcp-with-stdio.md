@@ -347,7 +347,7 @@ function createSlug(text: string): string {
 Connect the MCP server to stdio transport for communication:
 
 ```diff
-#!/usr/bin/env node --import ./loader.mjs
+#!/usr/bin/env -S node --import ./loader.mjs
 -//import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 +import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {createMcpServer} from "./mcp-server.js";
@@ -391,7 +391,7 @@ Add your server to VS Code's MCP configuration:
       "url": "https://api.githubcopilot.com/mcp/",
       "type": "http"
 +    },
-+    "mcp-training": {
++    "mcp-training-stdio": {
 +      "type": "stdio",
 +      "command": "./src/stdio-server.ts"
     }

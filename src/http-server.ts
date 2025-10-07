@@ -1,4 +1,4 @@
-#!/usr/bin/env node --import ./loader.mjs
+#!/usr/bin/env -S node --import ./loader.mjs
 import express from 'express';
 // import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 // import { createMcpServer } from "./mcp-server.js";
