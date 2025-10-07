@@ -1,16 +1,20 @@
 # Using MCP Inspector for Development and Debugging
 
-## Introduction
-
 By the end of this step, you will understand how to use the MCP Inspector to test, debug, and explore MCP servers. You'll learn to connect to both local and remote MCP services, analyze the raw JSON-RPC protocol, and identify common issues in MCP tool implementations.
 
-MCP Inspector is a powerful developer tool that acts as a visual client for MCP servers. It allows you to:
-
-- Test tools, resources, and prompts interactively
-- View raw JSON-RPC messages between client and server
-- Debug authentication and transport issues
-- Compare different MCP implementations
-- Explore remote MCP services like Atlassian's Rovo
+- [Problem](#problem)
+- [What you need to know](#what-you-need-to-know)
+  - [Installing and Running MCP Inspector](#installing-and-running-mcp-inspector)
+  - [Connecting to Local stdio Servers](#connecting-to-local-stdio-servers)
+  - [Connecting to Remote MCP Services](#connecting-to-remote-mcp-services)
+  - [Understanding the Inspector Interface](#understanding-the-inspector-interface)
+  - [Reading JSON-RPC Messages](#reading-json-rpc-messages)
+  - [Authorizing with OAuth 2.1 + PKCE (Atlassian Example)](#authorizing-with-oauth-21--pkce-atlassian-example)
+  - [Common Debugging Patterns](#common-debugging-patterns)
+- [Technical Requirements](#technical-requirements)
+- [How to verify your solution](#how-to-verify-your-solution)
+- [Solution](#solution)
+- [Next Steps](#next-steps)
 
 ## Problem
 
@@ -19,6 +23,14 @@ Your MCP server from step 3 works in VS Code, but you want to debug a specific i
 Your task is to use MCP Inspector to debug a broken tool implementation and learn how to systematically identify and fix MCP protocol issues.
 
 ## What you need to know
+
+MCP Inspector is a powerful developer tool that acts as a visual client for MCP servers. It allows you to:
+
+- Test tools, resources, and prompts interactively
+- View raw JSON-RPC messages between client and server
+- Debug authentication and transport issues
+- Compare different MCP implementations
+- Explore remote MCP services like Atlassian's Rovo
 
 ### Installing and Running MCP Inspector
 
@@ -135,7 +147,7 @@ MCP uses JSON-RPC 2.0 over various transports. Key message types:
 
 This response looks successful but the client doesn't display any content because it expects a `content` field, not `message`.
 
-### Connecting to Atlassian's MCP Service
+### Authorizing with OAuth 2.1 + PKCE (Atlassian Example)
 
 Atlassian provides a production MCP service through their Rovo platform. Here's how to connect:
 

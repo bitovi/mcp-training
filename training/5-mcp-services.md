@@ -1,8 +1,6 @@
 # Building Production-Ready MCP Services with Streamable HTTP
 
-## Introduction
-
-By the end of this step, you will understand how to transform your local stdio MCP server into a production-ready HTTP service that can handle multiple clients and be deployed to the web. You'll learn about Streamable HTTP transport, understand why it's the new baseline for MCP services, and build a complete HTTP-based MCP server.
+By the end of this step, you will understand how to transform your local stdio MCP server into a production-ready HTTP service that can handle multiple clients and be deployed to the web.
 
 Streamable HTTP is the evolution of MCP transport that enables:
 
@@ -11,6 +9,21 @@ Streamable HTTP is the evolution of MCP transport that enables:
 - **Real-time streaming** with Server-Sent Events (SSE) for long-running operations
 - **Session management** for stateful interactions
 - **Production features** like authentication, CORS, and proper error handling
+
+You'll learn about Streamable HTTP transport, understand why it's the new baseline for MCP services, and build a complete HTTP-based MCP server.
+
+- [Problem](#problem)
+- [What you need to know](#what-you-need-to-know)
+  - [Why Streamable HTTP is the New Baseline](#why-streamable-http-is-the-new-baseline)
+  - [Understanding the Three HTTP Methods](#understanding-the-three-http-methods)
+  - [Session Management with Headers](#session-management-with-headers)
+  - [Connecting to HTTP MCP Services](#connecting-to-http-mcp-services)
+  - [Required Dependencies](#required-dependencies)
+  - [Security Considerations](#security-considerations)
+- [Technical Requirements](#technical-requirements)
+- [How to verify your solution](#how-to-verify-your-solution)
+- [Solution](#solution)
+- [Next Steps](#next-steps)
 
 ## Problem
 
