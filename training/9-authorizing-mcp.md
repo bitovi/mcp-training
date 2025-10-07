@@ -435,7 +435,7 @@ const transports: Record<string, StreamableHTTPServerTransport> = {};
 3. **Line 17**: Add `WWW-Authenticate` header to CORS configuration for OAuth responses
 4. **Lines 25-26**: Add OAuth endpoints and authentication middleware after CORS
 
-📁 **Reference Implementation**: [training/9-authorizing-mcp/src/http-server.ts](training/9-authorizing-mcp/src/http-server.ts#L5,L13,L17,L25-L26)
+📁 **Reference Implementation**: [training/9-authorizing-mcp/src/http-server.ts](./9-authorizing-mcp/src/http-server.ts#L5,L13,L17,L25-L26)
 
 ### 7. Test the Implementation
 

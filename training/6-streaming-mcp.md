@@ -442,7 +442,7 @@ export function createMcpServer(): McpServer {
 5. **Line 55**: Add 1-second delay between updates using Promise-based setTimeout
 6. **Lines 58-63**: Return final "🚀 Blastoff!" result when countdown completes
 
-📁 **Reference Implementation**: [training/6-streaming-mcp/src/mcp-server.ts](training/6-streaming-mcp/src/mcp-server.ts#L5-L9,L27-L66)
+📁 **Reference Implementation**: [training/6-streaming-mcp/src/mcp-server.ts](./6-streaming-mcp/src/mcp-server.ts#L5-L9,L27-L66)
 
 ### Testing the Implementation
 

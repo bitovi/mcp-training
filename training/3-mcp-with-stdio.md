@@ -340,7 +340,7 @@ function createSlug(text: string): string {
 6. **Lines 21-35**: Register the "slugify" tool with Zod schema validation and implementation
 7. **Line 37**: Remove "TODO:" and implement server return instead of commented placeholder
 
-📁 **Reference Implementation**: [training/3-mcp-with-stdio/src/mcp-server.ts](training/3-mcp-with-stdio/src/mcp-server.ts#L1-L2,L15,L16-L19,L21-L35,L37)
+📁 **Reference Implementation**: [training/3-mcp-with-stdio/src/mcp-server.ts](./3-mcp-with-stdio/src/mcp-server.ts#L1-L2,L15,L16-L19,L21-L35,L37)
 
 ### 2. Update Stdio Server (`src/stdio-server.ts`)
 
@@ -378,7 +378,7 @@ try {
 3. **Line 10**: Replace empty line with server connection to transport
 4. **Line 13**: Replace empty line with stderr logging to avoid interfering with MCP protocol
 
-📁 **Reference Implementation**: [training/3-mcp-with-stdio/src/stdio-server.ts](training/3-mcp-with-stdio/src/stdio-server.ts#L2,L7,L10,L13)
+📁 **Reference Implementation**: [training/3-mcp-with-stdio/src/stdio-server.ts](./3-mcp-with-stdio/src/stdio-server.ts#L2,L7,L10,L13)
 
 ### 3. Configure VS Code MCP Integration (`.vscode/mcp.json`)
 
@@ -404,7 +404,7 @@ Add your server to VS Code's MCP configuration:
 1. **Lines 6-9**: Add new "mcp-training" server configuration using stdio transport
 2. **Command property**: Point to the executable stdio server file with proper shebang
 
-📁 **Reference Implementation**: [training/3-mcp-with-stdio/.vscode/mcp.json](training/3-mcp-with-stdio/.vscode/mcp.json#L6-L9)
+📁 **Reference Implementation**: [training/3-mcp-with-stdio/.vscode/mcp.json](./3-mcp-with-stdio/.vscode/mcp.json#L6-L9)
 
 ## Next Steps
 

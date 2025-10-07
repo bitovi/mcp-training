@@ -321,7 +321,7 @@ const handleExistingSession = async (req: express.Request, res: express.Response
 4. **Lines 34-40**: Implement POST endpoint with proper error handling for client requests
 5. **Lines 43-49**: Implement helper function for GET/DELETE endpoints with error handling
 
-📁 **Reference Implementation**: [training/5-mcp-services/src/http-server.ts](training/5-mcp-services/src/http-server.ts#L3-L4,L26-L28,L31,L34-L40,L43-L49)
+📁 **Reference Implementation**: [training/5-mcp-services/src/http-server.ts](./5-mcp-services/src/http-server.ts#L3-L4,L26-L28,L31,L34-L40,L43-L49)
 
 ### Step 3: Update VS Code Configuration (`.vscode/mcp.json`)
 
@@ -352,7 +352,7 @@ Add HTTP server configuration alongside existing stdio server:
 2. **Line 11**: Configure as HTTP transport type
 3. **Line 12**: Point to localhost HTTP endpoint on port 3000
 
-📁 **Reference Implementation**: [training/5-mcp-services/.vscode/mcp.json](training/5-mcp-services/.vscode/mcp.json#L10-L13)
+📁 **Reference Implementation**: [training/5-mcp-services/.vscode/mcp.json](./5-mcp-services/.vscode/mcp.json#L10-L13)
 
 ### Step 4: Test the Implementation
 
