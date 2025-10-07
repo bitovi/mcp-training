@@ -5,6 +5,65 @@
 
 This guide will help you set up your development environment for building Model Context Protocol (MCP) servers using Node.js and TypeScript. By the end of this setup, you'll have everything needed to follow the hands-on training steps.
 
+## Setup Options
+
+Choose one of the following setup methods:
+
+### Option A: Dev Container (Recommended) 🚀
+
+**Simplest setup** - One-click development environment with everything pre-configured.
+
+**Prerequisites:**
+- **Docker** installed and running
+  - Download: [docker.com/get-started](https://www.docker.com/get-started/)
+  - Ensure Docker Desktop is running before proceeding
+- **Visual Studio Code** with the **Dev Containers extension**
+  - VS Code: [code.visualstudio.com](https://code.visualstudio.com/)
+  - Dev Containers extension: [marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+
+**Steps:**
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/bitovi/mcp-training.git
+   cd mcp-training
+   ```
+
+2. **Open in VS Code**:
+   ```bash
+   code .
+   ```
+
+3. **Reopen in Container**:
+   - VS Code will detect the dev container configuration
+   - Click "Reopen in Container" when prompted
+   - Or use Command Palette (`Ctrl+Shift+P`): "Dev Containers: Reopen in Container"
+
+4. **Wait for setup to complete** - The container will automatically:
+   - Install Node.js 20
+   - Install all dependencies (`npm install`)
+   - Make server files executable
+   - Configure VS Code extensions
+   - Set up port forwarding for MCP servers
+
+5. **Verify setup**:
+   ```bash
+   npm run dev:stdio  # Test stdio server
+   npm run dev:http   # Test HTTP server
+   ```
+
+**Benefits of dev container:**
+- ✅ Consistent environment across all platforms
+- ✅ Pre-configured VS Code extensions
+- ✅ Automatic port forwarding (3000, 6274, 6277)
+- ✅ No manual dependency installation
+- ✅ Isolated from your host system
+
+---
+
+### Option B: Manual Installation
+
+**Full control** - Install everything directly on your system.
+
 ## Prerequisites
 
 Before starting, ensure you have the following installed on your system:
@@ -214,10 +273,10 @@ If commands like `npm` or `node` are not found:
 
 ## Next Steps
 
-Once your setup is complete:
+Once your setup is complete (either dev container or manual):
 
-1. **Verify everything works** by running the commands above
-2. **Open the project in VS Code**: `code .`
+1. **Verify everything works** by running the test commands
+2. **Open the project in VS Code** (if not already open)
 3. **Start with Step 1**: Read `training/1-what-is-mcp.md`
 4. **Follow the training progression** through each numbered step
 
@@ -225,6 +284,12 @@ Once your setup is complete:
 
 If you encounter issues:
 
+**For Dev Container users:**
+1. **Ensure Docker is running** and you have the Dev Containers extension
+2. **Try rebuilding the container**: Command Palette → "Dev Containers: Rebuild Container"
+3. **Check Docker logs** if the container fails to start
+
+**For Manual Installation users:**
 1. **Check the troubleshooting section** above
 2. **Verify your Node.js version**: `node --version` (should be 18+)
 3. **Try deleting `node_modules` and reinstalling**:
@@ -232,19 +297,32 @@ If you encounter issues:
    rm -rf node_modules package-lock.json
    npm install
    ```
+
+**For Both setups:**
 4. **Check the GitHub Issues** on the training repository
 5. **Ask for help** in your training session or workshop
 
 ## Summary
 
-After completing this setup, you should have:
+After completing either setup option, you should have:
 
+### Dev Container Users:
+✅ Docker container with Node.js 20 ready  
+✅ All dependencies pre-installed  
+✅ VS Code extensions configured automatically  
+✅ Port forwarding set up (3000, 6274, 6277)  
+✅ Server files executable  
+✅ Consistent environment across platforms  
+
+### Manual Installation Users:
 ✅ Node.js 18+ installed and working  
 ✅ Git installed and working  
 ✅ VS Code installed with recommended extensions  
 ✅ Training repository cloned  
-✅ Dependencies installed  
+✅ Dependencies installed manually  
+✅ Server files made executable (macOS/Linux)  
+
+**Both setups provide:**
 ✅ Both stdio and HTTP servers running successfully  
 ✅ MCP Inspector available for testing  
-
-You're now ready to begin the MCP training journey!
+✅ Ready to begin the MCP training journey! 🚀

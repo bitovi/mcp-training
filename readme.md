@@ -13,17 +13,29 @@ By the end of this training, you'll understand how to:
 - **Secure your services** with OAuth 2.1 + PKCE authentication
 - **Deploy production-ready MCP servers** that can handle multiple concurrent clients
 
+## Need help with this training or AI?
+
+This training is open-sourced by **[Bitovi](https://www.bitovi.com/)**, a consulting company that helps organizations implement AI capabilities and modern development practices. 
+
+Bitovi provides consulting services for:
+- AI agent development and MCP integration
+- Custom tool development for enterprise workflows  
+- Production deployment and scaling strategies
+- Team training and best practices
+
+Contact Bitovi to accelerate your AI initiatives with expert guidance. 
+
 ## Training Steps
 
 ### [Step 0: Setup](training/0-setup.md)
 **Environment Setup and Prerequisites**
 
-Get your development environment ready with Node.js 18+, Git, VS Code, and all required dependencies. Learn how to clone the repository, install packages, and verify your setup works correctly.
+Choose between two setup options: **Dev Container** (one-click setup with Docker) or **Manual Installation** (full control). Both provide everything needed for the training.
 
-- Install Node.js, Git, and VS Code
-- Clone the training repository and install dependencies
-- Make server files executable (macOS/Linux)
-- Verify both stdio and HTTP servers run successfully
+- **Option A**: Dev Container with pre-configured Node.js 20, VS Code extensions, and port forwarding
+- **Option B**: Manual installation of Node.js 18+, Git, VS Code, and dependencies
+- Clone the training repository and verify both stdio and HTTP servers work
+- Ready to start building MCP servers!
 
 ### [Step 1: What is MCP?](training/1-what-is-mcp.md)
 **Understanding the Model Context Protocol**
@@ -134,6 +146,7 @@ Secure your MCP server with OAuth 2.1 authentication using PKCE for enhanced sec
 
 ```
 mcp-training/
+├── .devcontainer/         # Dev Container configuration (Docker setup)
 ├── training/              # Step-by-step training materials
 │   ├── 0-setup.md
 │   ├── 1-what-is-mcp.md
@@ -155,20 +168,23 @@ mcp-training/
 
 ## Getting Started
 
-1. **Follow Step 0** to set up your development environment
-2. **Progress through each step sequentially** - each builds on the previous
-3. **Use the reference implementations** in `training/{step}/` folders when needed
-4. **Test your implementation** with both MCP Inspector and VS Code
-5. **Experiment and extend** the examples with your own tools and features
+Choose your preferred setup method in **Step 0**:
 
-## About This Training
+### Quick Start (Dev Container)
+1. **Install Docker** and the **VS Code Dev Containers extension**
+2. **Clone the repository**: `git clone https://github.com/bitovi/mcp-training.git`
+3. **Open in VS Code**: `code mcp-training`
+4. **Reopen in Container** when prompted - everything sets up automatically!
 
-This training is open-sourced by **[Bitovi](https://www.bitovi.com/)**, a consulting company that helps organizations implement AI capabilities and modern development practices. 
+### Manual Setup
+1. **Follow Step 0** for detailed manual installation instructions
+2. **Install Node.js 18+, Git, and VS Code** with required extensions
+3. **Clone and configure** the project manually
 
-**Need help with AI integration in your organization?** Bitovi provides consulting services for:
-- AI agent development and MCP integration
-- Custom tool development for enterprise workflows  
-- Production deployment and scaling strategies
-- Team training and best practices
+### Then for both approaches:
+1. **Progress through each step sequentially** - each builds on the previous
+2. **Use the reference implementations** in `training/{step}/` folders when needed
+3. **Test your implementation** with both MCP Inspector and VS Code
+4. **Experiment and extend** the examples with your own tools and features
 
-Contact Bitovi to accelerate your AI initiatives with expert guidance.  
+ 

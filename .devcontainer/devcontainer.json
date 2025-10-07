@@ -1,0 +1,66 @@
+{
+  "name": "MCP Training Environment",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:1-20-bullseye",
+  
+  // Features to install
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+
+  // Configure tool-specific properties
+  "customizations": {
+    "vscode": {
+      // VS Code extensions to install
+      "extensions": [
+        "ms-vscode.vscode-typescript-next",
+        "ms-vscode.vscode-json",
+        "esbenp.prettier-vscode",
+        "ms-vscode.vscode-eslint",
+        "eamodio.gitlens"
+      ],
+      
+      // VS Code settings
+      "settings": {
+        "typescript.suggest.autoImports": true,
+        "typescript.updateImportsOnFileMove.enabled": "always",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+          "source.fixAll.eslint": "explicit"
+        },
+        "files.associations": {
+          "*.ts": "typescript"
+        },
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  },
+
+  // Port forwarding for MCP servers
+  "forwardPorts": [3000, 6274, 6277],
+  "portsAttributes": {
+    "3000": {
+      "label": "MCP HTTP Server",
+      "onAutoForward": "notify"
+    },
+    "6274": {
+      "label": "MCP Inspector Web UI", 
+      "onAutoForward": "openBrowser"
+    },
+    "6277": {
+      "label": "MCP Inspector Proxy",
+      "onAutoForward": "silent"
+    }
+  },
+
+  // Commands to run after container creation
+  "postCreateCommand": "npm install && chmod +x src/stdio-server.ts src/http-server.ts",
+
+  // Development container configuration
+  "remoteUser": "node",
+  
+  // Container environment variables
+  "containerEnv": {
+    "NODE_ENV": "development"
+  }
+}
