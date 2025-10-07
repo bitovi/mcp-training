@@ -28,37 +28,39 @@ Your task is to enhance the countdown tool with business rule validation that ca
 import { z } from "zod";
 
 // Basic types
-z.string()           // string
-z.number()           // number  
-z.boolean()          // boolean
-z.array(z.string())  // string[]
+z.string(); // string
+z.number(); // number
+z.boolean(); // boolean
+z.array(z.string()); // string[]
 
 // Constraints
-z.string().min(1).max(100)              // Length constraints
-z.number().int().positive()             // Integer constraints
-z.number().min(0).max(100)              // Range constraints
-z.string().email()                      // Format validation
-z.string().regex(/^[a-z]+$/)           // Pattern matching
+z.string().min(1).max(100); // Length constraints
+z.number().int().positive(); // Integer constraints
+z.number().min(0).max(100); // Range constraints
+z.string().email(); // Format validation
+z.string().regex(/^[a-z]+$/); // Pattern matching
 
 // Required vs Optional
 z.object({
-  name: z.string(),                     // Required by default
+  name: z.string(), // Required by default
   email: z.string().email().optional(), // Optional field
-  age: z.number().default(0)            // Required with default value
-})
+  age: z.number().default(0), // Required with default value
+});
 ```
 
 **MCP Input Schema Pattern:**
+
 ```typescript
 inputSchema: {
   seconds: z.number()
     .int("Must be a whole number")
     .positive("Must be greater than 0")
-    .describe("Number of seconds to count down from")
+    .describe("Number of seconds to count down from");
 }
 ```
 
 **Key Zod Methods:**
+
 - **`.describe()`**: Adds documentation for the field (shows in MCP Inspector)
 - **`.optional()`**: Makes the field optional
 - **`.default(value)`**: Provides a default value if field is missing
@@ -70,7 +72,7 @@ inputSchema: {
 // Zod schema with default
 message: z.string().default("🚀 Blastoff!").optional()
 
-// TypeScript function with matching default  
+// TypeScript function with matching default
 async ({ seconds, message = "🚀 Blastoff!" }, extra) => {
 ```
 
@@ -81,19 +83,23 @@ async ({ seconds, message = "🚀 Blastoff!" }, extra) => {
 ```typescript
 async ({ seconds }, extra) => {
   // Schema validation already passed - seconds is a positive integer
-  
+
   // Business rule validation
   if (seconds > 15) {
-    throw new Error("Countdown duration must be 15 seconds or less for this demo");
+    throw new Error(
+      "Countdown duration must be 15 seconds or less for this demo"
+    );
   }
-  
+
   // Additional business rules
   if (seconds > userPlan.maxCountdown) {
-    throw new Error(`Your plan allows countdowns up to ${userPlan.maxCountdown} seconds`);
+    throw new Error(
+      `Your plan allows countdowns up to ${userPlan.maxCountdown} seconds`
+    );
   }
-  
+
   // Tool logic continues...
-}
+};
 ```
 
 ### MCP Error Types and Handling
@@ -101,25 +107,27 @@ async ({ seconds }, extra) => {
 The **[MCP SDK](https://modelcontextprotocol.io/docs/api/server)** provides specific error types for different scenarios:
 
 **Basic Errors (what we'll use):**
+
 ```typescript
 // Simple error with user-friendly message
 throw new Error("Countdown duration must be 15 seconds or less");
 ```
 
 **Advanced MCP Error Types:**
+
 ```typescript
-import { 
+import {
   InvalidTokenError,
-  AuthenticationError, 
+  AuthenticationError,
   AuthorizationError,
-  ValidationError 
+  ValidationError,
 } from "@modelcontextprotocol/sdk/types.js";
 
 // Authentication issues
 throw new InvalidTokenError("Token has expired");
 throw new AuthenticationError("Invalid credentials");
 
-// Authorization issues  
+// Authorization issues
 throw new AuthorizationError("Insufficient permissions for this operation");
 
 // Validation issues
@@ -127,6 +135,7 @@ throw new ValidationError("Invalid input parameters");
 ```
 
 **When to use specific error types:**
+
 - **`Error`**: General business rule violations, user-facing messages
 - **`ValidationError`**: Schema or input validation failures
 - **`AuthenticationError`**: Authentication failures (invalid tokens, expired sessions)
@@ -134,18 +143,21 @@ throw new ValidationError("Invalid input parameters");
 - **`InvalidTokenError`**: Specific token validation issues
 
 **Error Handling Best Practices:**
+
 ```typescript
 // ❌ Poor error message
 throw new Error("Invalid input");
 
 // ✅ Clear, actionable error message
-throw new Error("Countdown duration must be 15 seconds or less. You entered 30 seconds.");
+throw new Error(
+  "Countdown duration must be 15 seconds or less. You entered 30 seconds."
+);
 
 // ✅ Error with context and suggestions
 if (seconds > maxAllowed) {
   throw new Error(
     `Countdown duration of ${seconds} seconds exceeds the maximum allowed limit of ${maxAllowed} seconds. ` +
-    `Please enter a value between 1 and ${maxAllowed} seconds.`
+      `Please enter a value between 1 and ${maxAllowed} seconds.`
   );
 }
 ```
@@ -153,6 +165,7 @@ if (seconds > maxAllowed) {
 ### Complete Validation Flow
 
 **Validation happens in layers:**
+
 1. **Schema validation**: Zod validates input structure and types automatically
 2. **Tool handler execution**: Your async function runs
 3. **Business rule validation**: Check constraints in your tool logic
@@ -162,6 +175,7 @@ if (seconds > maxAllowed) {
 ### Advanced Zod Patterns
 
 **Complex validation with Zod:**
+
 ```typescript
 inputSchema: {
   // Required field with constraints
@@ -170,7 +184,7 @@ inputSchema: {
     .positive("Must be greater than 0")
     .max(60, "Cannot exceed 60 seconds")
     .describe("Number of seconds to count down from"),
-    
+
   // Optional field with default
   message: z.string()
     .min(1, "Message cannot be empty")
@@ -178,7 +192,7 @@ inputSchema: {
     .default("Ready!")
     .describe("Custom message to display")
     .optional(),
-    
+
   // Required field (explicit) - usually not needed
   userId: z.string()
     .min(1, "User ID is required")
@@ -189,19 +203,21 @@ inputSchema: {
 ```
 
 **When to use Zod vs Runtime validation:**
+
 - **Zod**: Static constraints that don't depend on external state
 - **Runtime**: Dynamic constraints, business logic, external API checks, user permissions
 
 ### Validation Testing Patterns
 
 **Test both validation layers:**
+
 ```typescript
 // Schema validation tests
 seconds: "10"    → ❌ Zod error (string instead of number)
 seconds: -5      → ❌ Zod error (negative number)
 seconds: 2.5     → ❌ Zod error (not integer)
 
-// Business rule tests  
+// Business rule tests
 seconds: 16      → ❌ Runtime error (exceeds limit)
 seconds: 15      → ✅ Valid (at limit)
 seconds: 10      → ✅ Valid
@@ -218,6 +234,7 @@ seconds: 10      → ✅ Valid
 5. **Maintain streaming functionality** for valid inputs
 
 **Expected validation logic:**
+
 - Schema validation: Ensure `seconds` is a positive integer (required by default)
 - Business rule: Reject any countdown > 15 seconds with helpful error message
 - Error format: Clear, user-facing message that explains the constraint
@@ -229,16 +246,19 @@ seconds: 10      → ✅ Valid
 ✏️ **Test valid inputs**:
 
 1. **Start your HTTP server**:
+
    ```bash
    npm run dev:http
    ```
 
 2. **Connect with MCP Inspector**:
+
    ```bash
    npx @modelcontextprotocol/inspector
    ```
 
 3. **Test valid countdown values**:
+
    - Try `seconds: 5` - should work normally with default "🚀 Blastoff!" message
    - Try `seconds: 15` - should work (at the limit)
    - Try `seconds: 1` - should work (minimum valid)
@@ -250,11 +270,13 @@ seconds: 10      → ✅ Valid
 ✏️ **Test invalid inputs**:
 
 1. **Test business rule validation**:
+
    - Try `seconds: 16` - should fail with clear error message
-   - Try `seconds: 30` - should fail with clear error message  
+   - Try `seconds: 30` - should fail with clear error message
    - Try `seconds: 100` - should fail with clear error message
 
 2. **Test schema validation** (should still work):
+
    - Try `seconds: -5` - should fail (negative number)
    - Try `seconds: 2.5` - should fail (not an integer)
    - Try `seconds: "10"` - should fail (string instead of number)
@@ -269,6 +291,7 @@ seconds: 10      → ✅ Valid
 ✏️ **Test in VS Code**:
 
 1. **Test in VS Code Copilot Chat**:
+
    - Ask: "Use the countdown tool to count down from 10 seconds" (should work with default message)
    - Ask: "Use the countdown tool to count down from 20 seconds" (should fail with clear error)
    - Ask: "Use the countdown tool to count down from 5 seconds with message 'Ready to go!'" (should work with custom message)
@@ -336,7 +359,7 @@ The main transformation from Step 6 (streaming) to Step 8 (validation) involves 
             data: `Countdown: ${i} seconds remaining`
           }
         });
-        
+
         // 2. Progress notification (when VS Code provides progressToken)
         if (extra._meta?.progressToken) {
           await extra.sendNotification({
@@ -349,7 +372,7 @@ The main transformation from Step 6 (streaming) to Step 8 (validation) involves 
             }
           });
         }
-        
+
         // Wait 1 second before next update
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
@@ -394,6 +417,7 @@ This implementation demonstrates the layered validation approach: Zod schema val
 ### Testing the Implementation
 
 **Valid inputs (should work)**:
+
 ```
 seconds: 1                               → ✅ Works with default message
 seconds: 15                              → ✅ Works (at limit)
@@ -401,6 +425,7 @@ seconds: 10, message: "Mission Complete!" → ✅ Works with custom message
 ```
 
 **Invalid inputs (should fail with clear errors)**:
+
 ```
 seconds: 16                     → ❌ "Countdown duration must be 15 seconds or less..."
 seconds: 30                     → ❌ "Countdown duration must be 15 seconds or less..."
@@ -411,3 +436,11 @@ seconds: 5, message: 123        → ❌ Zod schema error (message must be string
 ```
 
 This implementation demonstrates the layered validation approach: schema validation for structure/types, followed by business rule validation for domain-specific constraints, both with clear user-facing error messages.
+
+## Next Steps
+
+Your MCP server is robust and well-validated, but it's still wide open to the world. Time to add proper authentication and authorization!
+
+**Continue to:** [Step 9 - Authorizing MCP Services with OAuth 2.1 + PKCE](9-authorizing-mcp.md)
+
+In the final step, you'll implement OAuth 2.1 with PKCE to secure your MCP server and make it production-ready with proper authentication and authorization.

@@ -40,6 +40,7 @@ According to the [official MCP specification](https://modelcontextprotocol.io/do
 Streamable HTTP uses three specific HTTP methods for different purposes:
 
 #### **POST /mcp - Client to Server Messages**
+
 - **Purpose**: Send JSON-RPC requests, responses, and notifications from client to server
 - **Body**: Single JSON-RPC message
 - **Response**: Either immediate JSON response or SSE stream for long-running operations
@@ -63,6 +64,7 @@ Mcp-Session-Id: abc123
 ```
 
 #### **GET /mcp - Server to Client Messages**
+
 - **Purpose**: Open SSE stream for server-initiated messages (notifications, progress updates)
 - **Response**: `text/event-stream` with JSON-RPC messages as events
 - **Use Cases**: Progress notifications, logging, real-time updates
@@ -78,6 +80,7 @@ data: {"jsonrpc":"2.0","method":"notification","params":{"progress":50}}
 ```
 
 #### **DELETE /mcp - Session Termination**
+
 - **Purpose**: Explicitly terminate a session and clean up server resources
 - **Body**: Empty
 - **Response**: `204 No Content` on success
@@ -110,6 +113,7 @@ You've already learned how to connect to HTTP MCP services in step 4 when you co
 For building HTTP MCP servers, you'll need:
 
 **[Hono](https://hono.dev/)**: Fast, lightweight web framework
+
 - **Why Hono**: TypeScript-first, edge-runtime compatible, minimal overhead
 - **Alternatives**: Express.js (heavier), Fastify (more complex), native Node.js (verbose)
 
@@ -139,6 +143,7 @@ The [MCP specification](https://modelcontextprotocol.io/specification/2025-06-18
 7. **Test with both MCP Inspector and VS Code** to verify compatibility
 
 **Create the following file structure**:
+
 ```
 src/
 ├── stdio-server.ts     (existing)
@@ -147,6 +152,7 @@ src/
 ```
 
 **Add a package.json script** for running the HTTP server:
+
 ```json
 {
   "scripts": {
@@ -160,14 +166,17 @@ src/
 ✏️ **Test with MCP Inspector**:
 
 1. **Start your HTTP server**:
+
    ```bash
    npm run dev:http
    ```
 
 2. **Connect with MCP Inspector**:
+
    ```bash
    npx @modelcontextprotocol/inspector
    ```
+
    - Transport Type: "Streamable HTTP"
    - URL: `http://localhost:3000/mcp`
    - Click "Connect"
@@ -179,6 +188,7 @@ src/
 ✏️ **Test with VS Code**:
 
 1. **Update your `.vscode/mcp.json`**:
+
    ```json
    {
      "servers": {
@@ -248,12 +258,12 @@ app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Mcp-Session-Id, MCP-Protocol-Version');
-  
+
   if (req.method === 'OPTIONS') {
     res.sendStatus(200);
     return;
   }
-  
+
   next();
 });
 
@@ -291,6 +301,7 @@ const handleExistingSession = async (req: express.Request, res: express.Response
 ```
 
 **Key Changes:**
+
 1. **Lines 3-4**: Uncomment StreamableHTTPServerTransport and createMcpServer imports
 2. **Lines 26-28**: Create StreamableHTTPServerTransport instance in stateless mode
 3. **Line 31**: Connect MCP server to the HTTP transport
@@ -323,8 +334,9 @@ Add HTTP server configuration alongside existing stdio server:
 ```
 
 **Key Changes:**
+
 1. **Lines 10-13**: Add new "mcp-training-http" server configuration
-2. **Line 11**: Configure as HTTP transport type  
+2. **Line 11**: Configure as HTTP transport type
 3. **Line 12**: Point to localhost HTTP endpoint on port 3000
 
 📁 **Reference Implementation**: [training/5-mcp-services/.vscode/mcp.json](training/5-mcp-services/.vscode/mcp.json#L10-L13)
@@ -332,11 +344,13 @@ Add HTTP server configuration alongside existing stdio server:
 ### Step 4: Test the Implementation
 
 **Start the HTTP server**:
+
 ```bash
 npm run dev:http
 ```
 
 **Test with MCP Inspector**:
+
 ```bash
 npx @modelcontextprotocol/inspector
 # Set Transport Type: "Streamable HTTP"
@@ -346,3 +360,10 @@ npx @modelcontextprotocol/inspector
 
 **Test with VS Code**: Open the MCP panel and verify both servers work
 
+## Next Steps
+
+Your HTTP MCP server can handle multiple clients, but what about long-running operations? Let's add real-time streaming capabilities!
+
+**Continue to:** [Step 6 - Streaming MCP: Real-time Tool Responses](6-streaming-mcp.md)
+
+In the next step, you'll implement streaming capabilities to provide real-time progress updates and notifications to MCP clients.

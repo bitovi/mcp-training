@@ -11,7 +11,7 @@ In step 5, we built a simple HTTP server that used a single transport for all re
 Your current HTTP server has several limitations when dealing with multiple clients:
 
 - **No state isolation**: All clients share the same transport instance
-- **No reconnection support**: Clients can't resume sessions after network interruptions  
+- **No reconnection support**: Clients can't resume sessions after network interruptions
 - **No proper cleanup**: No way to clean up resources when clients disconnect
 - **Scalability issues**: Cannot handle many concurrent clients efficiently
 - **SSE streaming problems**: Server-sent events need persistent per-client connections
@@ -23,12 +23,14 @@ Your task is to implement proper session management that allows multiple clients
 ### Session Management Concepts
 
 **Session Lifecycle:**
+
 1. **Initialization**: Client sends first request, server creates new session
 2. **Active Usage**: Client uses `Mcp-Session-Id` header for all subsequent requests
 3. **Termination**: Client sends DELETE request or session times out
 4. **Cleanup**: Server removes session and frees resources
 
 **Session Headers:**
+
 - **`Mcp-Session-Id`**: Unique identifier for the session
 - **`MCP-Protocol-Version`**: Protocol version for compatibility
 - **Session ID generation**: Server responsibility, should be unique and secure
@@ -47,13 +49,14 @@ const transport = new StreamableHTTPServerTransport({
   onsessioninitialized: (sessionId) => {
     // Store the transport for this session
     transports[sessionId] = transport;
-  }
+  },
 });
 ```
 
 ### Session Initialization Flow
 
 **First Request (no session ID):**
+
 1. Client sends POST without `Mcp-Session-Id` header
 2. Server creates new transport with session ID generator
 3. Server connects MCP server to new transport
@@ -62,6 +65,7 @@ const transport = new StreamableHTTPServerTransport({
 6. Response includes new session ID in headers
 
 **Subsequent Requests (with session ID):**
+
 1. Client includes `Mcp-Session-Id: <session-id>` header
 2. Server looks up existing transport in session map
 3. Server uses existing transport to handle request
@@ -70,6 +74,7 @@ const transport = new StreamableHTTPServerTransport({
 ### Cleanup and Resource Management
 
 **Automatic Cleanup:**
+
 ```typescript
 transport.onclose = () => {
   if (transport.sessionId) {
@@ -80,6 +85,7 @@ transport.onclose = () => {
 ```
 
 **Manual Cleanup (DELETE requests):**
+
 - Client sends DELETE request to terminate session
 - Server calls `transport.handleRequest()` which triggers cleanup
 - Transport calls `onclose` callback
@@ -88,14 +94,16 @@ transport.onclose = () => {
 ### Error Handling Patterns
 
 **Invalid Session ID:**
+
 ```typescript
 if (!sessionId || !transports[sessionId]) {
-  res.status(400).json({ error: 'Invalid or missing session ID' });
+  res.status(400).json({ error: "Invalid or missing session ID" });
   return;
 }
 ```
 
 **Initialization vs Reconnection:**
+
 ```typescript
 if (sessionId && transports[sessionId]) {
   // Existing session - reuse transport
@@ -119,6 +127,7 @@ if (sessionId && transports[sessionId]) {
 7. **Add proper error handling** for invalid session IDs
 
 **Expected behaviors:**
+
 - Multiple clients can connect simultaneously with different session IDs
 - Each client maintains isolated state through their own transport
 - Clients can reconnect using their existing session ID
@@ -130,26 +139,31 @@ if (sessionId && transports[sessionId]) {
 ✏️ **Test with multiple MCP Inspector instances**:
 
 1. **Start your HTTP server**:
+
    ```bash
    npm run dev:http
    ```
 
 2. **Connect first Inspector instance**:
+
    ```bash
    npx @modelcontextprotocol/inspector
    ```
+
    - Transport Type: "Streamable HTTP"
    - URL: `http://localhost:3000/mcp`
    - Click "Connect"
    - Note the session ID in the console output
 
 3. **Connect second Inspector instance**:
+
    - Open a new terminal
    - Run the same `npx @modelcontextprotocol/inspector` command
    - Connect to the same URL
    - Verify it gets a different session ID
 
 4. **Test session isolation**:
+
    - Call tools from both instances
    - Verify each works independently
    - Check server logs show different session IDs
@@ -212,12 +226,12 @@ app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Mcp-Session-Id, MCP-Protocol-Version');
-  
+
   if (req.method === 'OPTIONS') {
     res.sendStatus(200);
     return;
   }
-  
+
   next();
 });
 
@@ -279,7 +293,7 @@ const handleExistingSession = async (req: express.Request, res: express.Response
   try {
 -    await transport.handleRequest(req, res);
 +    const sessionId = req.headers['mcp-session-id'] as string | undefined;
-+    
++
 +    if (!sessionId || !transports[sessionId]) {
 +      res.status(400).json({ error: 'Invalid or missing session ID' });
 +      return;
@@ -330,22 +344,25 @@ This transformation enables multiple clients to connect simultaneously while mai
 ### Testing the Implementation
 
 **Start the server and test with multiple clients**:
+
 ```bash
 npm run dev:http
 ```
 
 **Open multiple terminals and connect with Inspector**:
+
 ```bash
 # Terminal 1
 npx @modelcontextprotocol/inspector
 
-# Terminal 2  
+# Terminal 2
 npx @modelcontextprotocol/inspector
 
 # Each should get a different session ID
 ```
 
 **Test session cleanup**:
+
 ```bash
 # Manually terminate a session
 curl -X DELETE http://localhost:3000/mcp \
@@ -366,3 +383,11 @@ curl -X DELETE http://localhost:3000/mcp \
 5. **Error Handling**: Invalid session IDs return 400 Bad Request with clear error messages
 
 This implementation provides proper isolation between clients while maintaining efficient resource usage and cleanup.
+
+## Next Steps
+
+Your MCP server now handles multiple clients beautifully, but what about input validation and business rules? Let's make it robust!
+
+**Continue to:** [Step 8 - Validation Patterns: Schema + Runtime Rules](8-validating-mcp.md)
+
+In the next step, you'll implement comprehensive validation using both schema validation and runtime business rules to ensure your MCP tools handle edge cases gracefully.
