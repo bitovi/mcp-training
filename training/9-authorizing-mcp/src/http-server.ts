@@ -4,6 +4,12 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { createMcpServer } from "./mcp-server.js";
 import { addOAuthToApp } from "./auth/oauth-wrapper.js";
 
+process.on('uncaughtException', (error) => {
+  console.error(error);
+  process.exit(1);
+});
+process.on('unhandledRejection', console.error);
+
 const app = express();
 
 // Middleware

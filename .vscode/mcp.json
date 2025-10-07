@@ -3,6 +3,14 @@
     "github": {
       "url": "https://api.githubcopilot.com/mcp/",
       "type": "http"
-    }
+    },
+    "mcp-training-stdio": {
+      "type": "stdio",
+      "command": "./src/stdio-server.ts"
+    },
+    "mcp-training-http": {
+      "type": "http",
+      "url": "http://localhost:3000/mcp"
+    },
   }
 }

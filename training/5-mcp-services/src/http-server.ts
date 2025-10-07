@@ -3,6 +3,12 @@ import express from 'express';
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { createMcpServer } from "./mcp-server.js";
 
+process.on('uncaughtException', (error) => {
+  console.error(error);
+  process.exit(1);
+});
+process.on('unhandledRejection', console.error);
+
 const app = express();
 
 // Middleware
