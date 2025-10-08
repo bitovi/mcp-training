@@ -2,20 +2,44 @@
 
 This guide will help you set up your development environment for building Model Context Protocol (MCP) servers using Node.js and TypeScript. By the end of this setup, you'll have everything needed to follow the hands-on training steps.
 
-Choose either DevContainer Setup (recommended) or Local Setup below.
+Make sure you have VSCode setup, then continue either DevContainer Setup (recommended) or Local Setup below.
 
-- [Introduction](#introduction)
-- [DevContainer Setup](#devcontainer-setup)
-- [Local Setup](#local-setup)
-- [Common Setup Steps](#common-setup-steps)
-  - [Install Node.js](#install-nodejs)
-  - [Install Git](#install-git)
-  - [Install Visual Studio Code](#install-visual-studio-code)
+- [Setup Visual Studio Code](#setup-visual-studio-code)
+- [Setup Dev Environment](#setup-dev-environment)
+  - [DevContainer Setup (recommended)](#devcontainer-setup)
+  - [Local Setup (alternative)](#local-setup)
 - [Verifying Setup](#verifying-setup)
 - [Troubleshooting](#troubleshooting)
 - [Next Steps](#next-steps)
 
-## DevContainer Setup
+### Setup Visual Studio Code
+
+**Download and install, if needed:**
+
+- Go to [code.visualstudio.com](https://code.visualstudio.com/)
+- Download the installer for your operating system
+- Follow the installation instructions
+
+**Required VS Code Extension for DevContainer Setup:**
+
+- **Dev Containers** - [marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+
+**Recommended VS Code Extensions:**
+
+VS Code should automatically suggest installing these extensions when you open this workspace. You can agree to the popop suggestion or install yourself:
+
+- **TypeScript and JavaScript Language Features** (usually pre-installed)
+- **ESLint** - for code linting
+- **Prettier** - for code formatting
+- **GitLens** - enhanced Git integration
+
+Install extensions by opening VS Code and pressing `Ctrl+Shift+X` (or `Cmd+Shift+X` on macOS), then search for each extension name.
+
+## Setup Dev Environment
+
+After VSCode is setup, follow the instructions for either the DevContainer Setup (recommended) or the Local Setup.
+
+### DevContainer Setup
 
 **Simplest setup** - One-click development environment with everything pre-configured.
 
@@ -24,7 +48,7 @@ Choose either DevContainer Setup (recommended) or Local Setup below.
 - **Docker** installed and running
   - Download: [docker.com/get-started](https://www.docker.com/get-started/)
   - Ensure Docker Desktop is running before proceeding
-- **Visual Studio Code** with the **Dev Containers extension** - see [Install Visual Studio Code](#install-visual-studio-code)
+- **Visual Studio Code** with the **Dev Containers extension** - see [Setup Visual Studio Code](#setup-visual-studio-code)
 
 **Steps:**
 
@@ -58,43 +82,18 @@ Choose either DevContainer Setup (recommended) or Local Setup below.
 - ✅ No manual dependency installation
 - ✅ Isolated from your host system
 
-## Local Setup
+### Local Setup
 
 **Full control** - Install everything directly on your system.
 
-**Prerequisites:**
+#### **Prerequisites:**
 
 - [Node.js (version 18 or higher)](#install-nodejs)
 - [Git](#install-git)
-- [Visual Studio Code](#install-visual-studio-code)
+- [Visual Studio Code](#setup-visual-studio-code)
 - A terminal/command prompt
 
-**Steps:**
-
-1. **Clone the repository**:
-
-   ```bash
-   git clone https://github.com/bitovi/mcp-training.git
-   cd mcp-training
-   ```
-
-   Then open the folder in VS Code: `code .`
-
-2. **Install dependencies**:
-
-   ```bash
-   npm install
-   ```
-
-3. **Make server files executable** (macOS/Linux only):
-   ```bash
-   chmod +x src/stdio-server.ts
-   chmod +x src/http-server.ts
-   ```
-
-## Common Setup Steps
-
-### Install Node.js
+##### Install Node.js
 
 **Check if Node.js is already installed:**
 
@@ -151,7 +150,7 @@ npm --version
 
 You should see Node.js version 18+ and npm version 8+.
 
-### Install Git
+##### Install Git
 
 **Check if Git is already installed:**
 
@@ -184,26 +183,28 @@ sudo dnf install git
 sudo yum install git
 ```
 
-### Install Visual Studio Code
+#### **Steps:**
 
-**Download and install:**
+1. **Clone the repository**:
 
-- Go to [code.visualstudio.com](https://code.visualstudio.com/)
-- Download the installer for your operating system
-- Follow the installation instructions
+   ```bash
+   git clone https://github.com/bitovi/mcp-training.git
+   cd mcp-training
+   ```
 
-**Required VS Code Extension for DevContainer Setup:**
+   Then open the folder in VS Code: `code .`
 
-- **Dev Containers** - [marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+2. **Install dependencies**:
 
-**Recommended VS Code Extensions:**
+   ```bash
+   npm install
+   ```
 
-- **TypeScript and JavaScript Language Features** (usually pre-installed)
-- **ESLint** - for code linting
-- **Prettier** - for code formatting
-- **GitLens** - enhanced Git integration
-
-Install extensions by opening VS Code and pressing `Ctrl+Shift+X` (or `Cmd+Shift+X` on macOS), then search for each extension name.
+3. **Make server files executable** (macOS/Linux only):
+   ```bash
+   chmod +x src/stdio-server.ts
+   chmod +x src/http-server.ts
+   ```
 
 ## Verifying Setup
 
@@ -232,7 +233,9 @@ You should see:
 
 Press `Ctrl+C` to stop the server.
 
-**Expected setup results:**
+**🎉 If both commands ran successfully, you have completed setup!**
+
+Behind the scenes, your successful test means you now have:
 
 ### DevContainer Users:
 
