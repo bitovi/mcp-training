@@ -3,6 +3,13 @@ import crypto from 'crypto';
 import { oauth } from './oauth-server.js';
 import model from './oauth-model.js';
 
+// Track server startup time for restart detection
+const serverStartTime = new Date();
+// 🔑 FIX: Include server instance in scopes to force VS Code to refresh tokens
+// This must match the scope in the WWW-Authenticate header
+// https://github.com/microsoft/vscode/issues/270383
+const serverInstanceScope = `server-instance-${serverStartTime.getTime()}`;
+
 // 0. Authentication middleware for MCP routes - Hit first when creating 401
 export async function authenticateRequest(
   req: express.Request,
@@ -35,7 +42,7 @@ export async function authenticateRequest(
 // 1. OAuth Discovery - First step: clients discover OAuth endpoints
 export function discovery(req: express.Request, res: express.Response) {
   res.json({
-    issuer: 'http://localhost:3000',
+    issuer: 'http://localhost:3000', 
     authorization_endpoint: 'http://localhost:3000/authorize',
     token_endpoint: 'http://localhost:3000/token',
     registration_endpoint: 'http://localhost:3000/register',
@@ -43,7 +50,7 @@ export function discovery(req: express.Request, res: express.Response) {
     response_types_supported: ['code'],
     grant_types_supported: ['authorization_code', 'refresh_token'],
     token_endpoint_auth_methods_supported: ['none', 'client_secret_post'],
-    scopes_supported: []
+    scopes_supported: [serverInstanceScope],
   });
 }
 
@@ -53,7 +60,7 @@ export function protectedResourceMetadata(req: express.Request, res: express.Res
   res.json({
     resource: baseUrl,
     authorization_servers: [baseUrl],
-    scopes_supported: [],
+    scopes_supported: [serverInstanceScope],
     bearer_methods_supported: ['header', 'body'],
     resource_documentation: `${baseUrl}/.well-known/oauth-authorization-server`
   });
@@ -83,10 +90,8 @@ export function register(req: express.Request, res: express.Response) {
       ...(clientMetadata.client_uri && { client_uri: clientMetadata.client_uri })
     };
 
-    console.log('Registered new MCP client:', clientId);
     res.status(201).json(registrationResponse);
   } catch (error) {
-    console.error('Client registration failed:', error);
     res.status(400).json({
       error: 'invalid_client_metadata',
       error_description: error instanceof Error ? error.message : 'Invalid client metadata'
@@ -97,13 +102,9 @@ export function register(req: express.Request, res: express.Response) {
 // 4. Authorization Request - Show consent page to user
 export function authorizeGet(req: express.Request, res: express.Response) {
   try {
-    console.log('Authorization GET request:', req.query);
-    
     // Show consent page with OAuth parameters
     const { client_id, redirect_uri, code_challenge, code_challenge_method } = req.query;
     const state = req.query.state || 'default'; // Ensure state has a value
-    
-    console.log('Showing consent page for client:', client_id);
     
     const consentPage = `
       <!DOCTYPE html>
@@ -136,10 +137,8 @@ export function authorizeGet(req: express.Request, res: express.Response) {
       </html>
     `;
     
-    console.log('Sending consent page HTML');
     res.send(consentPage);
   } catch (error) {
-    console.error('Authorization GET error:', error);
     res.status(500).json({ error: 'Authorization failed' });
   }
 }
@@ -225,7 +224,7 @@ function createWwwAuthenticate(
 ): string {
   const metadataUrl = 'http://localhost:3000/.well-known/oauth-authorization-server';
 
-  let authValue = 'Bearer realm="mcp"';
+  let authValue = `Bearer realm="mcp", scope="${serverInstanceScope}"`;
 
   // Add error description if provided
   if (errorDescription) {
