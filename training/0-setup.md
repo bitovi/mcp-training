@@ -37,7 +37,7 @@ Install extensions by opening VS Code and pressing `Ctrl+Shift+X` (or `Cmd+Shift
 
 ## Setup Dev Environment
 
-After VSCode is setup, follow the instructions for either the DevContainer Setup (recommended) or the Local Setup.
+After VSCode is setup, follow the instructions for either the DevContainer Setup (recommended) or the Local Setup. [Troubleshooting steps](#troubleshooting) are at the bottom of this page.
 
 ### DevContainer Setup
 
@@ -66,7 +66,6 @@ After VSCode is setup, follow the instructions for either the DevContainer Setup
    - VS Code will detect the dev container configuration
    - Click "Reopen in Container" when prompted
    - Or use Command Palette (`Ctrl+Shift+P`): "Dev Containers: Reopen in Container"
-   <!-- todo minor: discuss: do we want to include the steps to add missing paths if vscode/terminal can't find docker? slack thread: https://bitovi.slack.com/archives/C096Z489S5V/p1759950291355239 -->
 
 3. **Wait for setup to complete** - The container will automatically:
    - Install Node.js 20
@@ -313,6 +312,23 @@ If commands like `npm` or `node` are not found:
 1. **Ensure Docker is running** and you have the Dev Containers extension
 2. **Try rebuilding the container**: Command Palette → "Dev Containers: Rebuild Container"
 3. **Check Docker logs** if the container fails to start
+4. **If Docker Desktop is recently installed and running, but VS Code says the Docker version number is wrong and prompts to install Docker again**: the /usr/local/bin paths may have not been installed correctly, & not because of any user error. This is an rare Mac-specific problem.
+   1. **Check Docker version** by running `docker --version` in a terminal. This is not the same as the Docker Desktop version.
+      - If the version is lower than what VS Code is requesting, update/install Docker, then return to [DevContainer Setup](#devcontainer-setup) above.
+      - If it says `docker: command not found`, continue through the next steps. Re-installing Docker is unlikely to fix it.
+   2. **Check if Docker paths were all installed correctly.** Find all Docker paths in `/usr/local/bin` by running this in a new (not VS Code) root terminal:
+      ```bash
+      ls -l /usr/local/bin | grep docker
+      ```
+      - Output should show multiple lines of files found, and must have one that is just for `docker` like this: `<...> docker -> /Applications/Docker.app/Contents/Resources/bin/docker`. We are specifically looking for `docker`, not just `docker-compose`.
+        - For context: if there is no `docker` in the output, this explains why `docker --version` results in a `command not found`, in spite of Docker Desktop being installed. The correct paths are missing.
+   3. **If `docker` is missing, force-add it** by doing the following:
+      1. Inside Docker Desktop, click the topbar's gear icon to **open "Settings"**
+      2. Click **"Advanced"** from the sidebar menu.
+      3. Toggle the choices under **"configure the installation of Docker's CLI tools"** back and forth:
+         - Choose "User", then "Apply". After it finishes, restart Docker.
+         - Choose "System", then "Apply". After it finishes restart Docker.
+         - Open a new terminal, and run `ls -l /usr/local/bin | grep docker` again. It should now show a list of files including `docker`. If so, restart VS Code and continue with [DevContainer Setup](#devcontainer-setup).
 
 ### Local Installation Issues
 
