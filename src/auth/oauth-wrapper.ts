@@ -1,7 +1,6 @@
 import express from 'express';
 import { oauth } from './oauth-server.js';
-import { discovery, authorizeGet, authorizeDecision, protectedResourceMetadata, callback, register } from './oauth-handlers.js';
-import model from './oauth-model.js';
+import { discovery, authorizeGet, authorizeDecision, protectedResourceMetadata, callback, register, authenticateRequest } from './oauth-handlers.js';
 
 export function addOAuthToApp(app: express.Application) {
   // Add OAuth discovery endpoints
@@ -32,7 +31,7 @@ export function addOAuthToApp(app: express.Application) {
   app.post('/register', register);
   
   // Add authentication middleware to /mcp routes
-  app.use('/mcp', oauth.authenticate());
+  app.use('/mcp', authenticateRequest);
   
   return app;
 }
