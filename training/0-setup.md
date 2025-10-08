@@ -66,6 +66,7 @@ After VSCode is setup, follow the instructions for either the DevContainer Setup
    - VS Code will detect the dev container configuration
    - Click "Reopen in Container" when prompted
    - Or use Command Palette (`Ctrl+Shift+P`): "Dev Containers: Reopen in Container"
+   <!-- todo minor: discuss: do we want to include the steps to add missing paths if vscode/terminal can't find docker? slack thread: https://bitovi.slack.com/archives/C096Z489S5V/p1759950291355239 -->
 
 3. **Wait for setup to complete** - The container will automatically:
    - Install Node.js 20
@@ -73,6 +74,7 @@ After VSCode is setup, follow the instructions for either the DevContainer Setup
    - Make server files executable
    - Configure VS Code extensions
    - Set up port forwarding for MCP servers
+   <!-- todo: discuss: how does a learner verify these are setup correctly? -->
 
 **Benefits of dev container:**
 
@@ -186,6 +188,7 @@ sudo yum install git
 #### **Steps:**
 
 1. **Clone the repository**:
+   <!-- todo: minor discussion: these "clone" instructions should match the "clone" instructions in the DevContainer setup. There, it clones from inside VSCode terminal with different commands, this assumes use of a generic terminal. Maybe use the instructions for inside vscode, so there's no one fighting with `code .` not working? Those these are simpler and what most devs would do 🤷 -->
 
    ```bash
    git clone https://github.com/bitovi/mcp-training.git
