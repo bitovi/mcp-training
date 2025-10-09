@@ -22,11 +22,13 @@ This hands-on experience will show you how agents discover tools, handle authent
 
 ## What you need to know
 
-📝 **Reference**: [MCP Specification](https://spec.modelcontextprotocol.io/)
+📝 **Reference**: [MCP Specification](https://modelcontextprotocol.io/specification/2025-06-18)
 
 ### MCP Client Configuration in VS Code
 
 VS Code can act as an MCP client through configuration files. You'll create a `.vscode/mcp.json` file that tells VS Code how to connect to MCP servers:
+
+<!-- todo: this url is broken ⬇️. Maybe it should be https://code.visualstudio.com/docs/copilot/customization/mcp-servers ? -->
 
 📝 **Reference**: [VS Code MCP Extension Documentation](https://github.com/modelcontextprotocol/vscode-mcp)
 
