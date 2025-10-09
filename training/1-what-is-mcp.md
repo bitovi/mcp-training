@@ -27,7 +27,7 @@ MCP servers can expose four main types of capabilities:
 
 ### Tools
 
-[Tools](https://spec.modelcontextprotocol.io/specification/2025-06-18/server/tools) are RPC‑like functions that clients can call to perform actions or retrieve data. Examples:
+[Tools](https://modelcontextprotocol.io/specification/2025-06-18/server/tools) are RPC‑like functions that clients can call to perform actions or retrieve data. Examples:
 
 - Search Jira issues
 - Create a GitHub issue
@@ -36,7 +36,7 @@ MCP servers can expose four main types of capabilities:
 
 ### Resources
 
-[Resources](https://spec.modelcontextprotocol.io/specification/2025-06-18/server/resources) are readable URIs that return content, similar to files or dynamic lookups. Resources represent **data that exists** rather than **actions to perform**.
+[Resources](https://modelcontextprotocol.io/specification/2025-06-18/server/resources) are readable URIs that return content, similar to files or dynamic lookups. Resources represent **data that exists** rather than **actions to perform**.
 
 **Key differences from tools:**
 
@@ -83,7 +83,7 @@ MCP servers can expose four main types of capabilities:
 
 ### Prompts
 
-[Prompts](https://spec.modelcontextprotocol.io/specification/2025-06-18/server/prompts) are pre‑defined prompt templates exposed by the server that clients can use. Examples:
+[Prompts](https://modelcontextprotocol.io/specification/2025-06-18/server/prompts) are pre‑defined prompt templates exposed by the server that clients can use. Examples:
 
 - Code review templates
 - Meeting summary formats
@@ -91,7 +91,7 @@ MCP servers can expose four main types of capabilities:
 
 ### Sampling Hooks
 
-[Sampling hooks](https://spec.modelcontextprotocol.io/specification/2025-06-18/client/sampling) allow servers to **use the client's AI capabilities** for text/data generation within tool workflows. Sampling hooks enable servers to leverage the client's AI model without needing their own.
+[Sampling hooks](https://modelcontextprotocol.io/specification/2025-06-18/client/sampling) allow servers to **use the client's AI capabilities** for text/data generation within tool workflows. Sampling hooks enable servers to leverage the client's AI model without needing their own.
 
 **How it works:**
 
