@@ -12,9 +12,8 @@ Learn about the Model Context Protocol (MCP) and understand how it enables AI ag
   - [stdio](#stdio)
   - [Streamable HTTP](#streamable-http)
 - [How Agents Use MCP](#how-agents-use-mcp)
-- [MCP Architecture](#mcp-architecture)
-- [Key Benefits](#key-benefits)
 - [Terminology Note](#terminology-note)
+- [Next Steps](#next-steps)
 
 ## What is MCP?
 
