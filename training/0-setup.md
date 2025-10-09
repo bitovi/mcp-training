@@ -12,7 +12,7 @@ Make sure you have VSCode setup, then continue either DevContainer Setup (recomm
 - [Troubleshooting](#troubleshooting)
 - [Next Steps](#next-steps)
 
-### Setup Visual Studio Code
+## Setup Visual Studio Code
 
 **Download and install, if needed:**
 
