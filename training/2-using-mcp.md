@@ -16,6 +16,10 @@ Learn how to connect to and use a real production MCP server by configuring VS C
 
 ## Problem
 
+<!-- It's a bit unclear what exact problem we're asking of a student, because of how this is organized. Is the initial task on this page "building your own MCP server" or "understand how MCP works" or "use Github Copilot"? (I know the task, but when I tried to start working on it, it took me longer than it should have to scroll and find again what exactly I was asked to do.)
+
+-->
+
 Before building your own MCP server, you need to understand how MCP works in practice. You want to use GitHub Copilot to help manage GitHub issues by connecting to GitHub's MCP server, creating a new issue in the `bitovi/mcp-training` repository, and then closing it.
 
 This hands-on experience will show you how agents discover tools, handle authentication, and make tool calls in a real-world scenario.
@@ -145,6 +149,8 @@ When working with AI agents that have access to MCP tools, effective prompting i
 - **Verification-focused**: Ask for confirmation of actions before execution
 
 **Example Effective Prompts:**
+
+<!-- 🤔 is it ok that a student can use this exact prompt? This isn't just an example of an effective prompt, this is an effective solution -->
 
 - ✅ "Create a new issue in bitovi/mcp-training with title 'Test MCP Integration' and describe it as a training exercise"
 - ❌ "Make an issue about testing"
