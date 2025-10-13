@@ -155,6 +155,7 @@ const userInfoSchema = {
   age: z.number().min(18).describe("User's age (must be 18 or older)"),
 };
 
+// 🤔 z.toJSONSchema requires zod 4. zod 3 is what's currenlty installed on this project. & elsewhere this page references z.schema instead
 // McpServer can call methods like this to get JSON Schema:
 console.log(z.toJSONSchema(userInfoSchema.name));
 // Output: {
@@ -259,6 +260,8 @@ The server should:
 
 ## Solution
 
+<!-- 🙋 was this solution supposed to be in an expandable element, like on previous pages? on this page and the next they are no longer expandable -->
+
 Here's the complete implementation:
 
 **Install the required dependencies**:
@@ -332,6 +335,8 @@ function createSlug(text: string): string {
 
 **Key Changes:**
 
+<!-- these should not include "remove todo" as key changes. Also, it can be better for student comprehension to leave the "todos" in the solution, since it makes it uses the existing mental "todo" context. -->
+
 1. **Lines 1-2**: Uncomment imports for `McpServer` and `z` (Zod) to enable MCP functionality
 2. **Line 15**: Add proper TypeScript return type annotation for the factory function
 3. **Line 16**: Remove "TODO:" from comment and implement server creation
@@ -362,6 +367,7 @@ try {
 +  await createMcpServer().connect(transport);
 
   // Log to stderr so it doesn't interfere with MCP protocol
+  // 🙋🙋🙋🙋🙋 I wasn't able to find these logs in the Output
 -
 +  console.error("Demo MCP server running on stdio");
 +

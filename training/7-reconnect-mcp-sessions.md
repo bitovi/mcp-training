@@ -357,6 +357,7 @@ npx @modelcontextprotocol/inspector
 
 # Terminal 2
 npx @modelcontextprotocol/inspector
+# TODO: fix to run in new port: gets error `❌  Proxy Server PORT IS IN USE at port 6277 ❌`.
 
 # Each should get a different session ID
 ```

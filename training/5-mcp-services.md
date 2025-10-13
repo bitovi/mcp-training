@@ -114,6 +114,8 @@ Streamable HTTP introduces session management through headers:
 
 ### Connecting to HTTP MCP Services
 
+<!-- current exercises don't connect to atlassians service. I think those instructions should move here. -->
+
 You've already learned how to connect to HTTP MCP services in step 4 when you connected to Atlassian's service! The same principles apply:
 
 1. **Transport Type**: Select "Streamable HTTP" or "SSE" in MCP Inspector
@@ -124,6 +126,8 @@ You've already learned how to connect to HTTP MCP services in step 4 when you co
 ### Required Dependencies
 
 For building HTTP MCP servers, you'll need:
+
+<!-- I installed hono, but didn't do anything with it. was it actually needed? -->
 
 **[Hono](https://hono.dev/)**: Fast, lightweight web framework
 
@@ -159,9 +163,9 @@ The [MCP specification](https://modelcontextprotocol.io/specification/2025-06-18
 
 ```
 src/
-├── stdio-server.ts     (existing)
 ├── http-server.ts      (new - main HTTP server)
 └── mcp-server.ts       (existing - configured MCP server)
+├── stdio-server.ts     (existing)
 ```
 
 **Add a package.json script** for running the HTTP server:
@@ -216,6 +220,8 @@ src/
      }
    }
    ```
+
+<!-- what mcp panel? -->
 
 2. **Test both servers** work in VS Code's MCP panel
 

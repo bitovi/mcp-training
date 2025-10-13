@@ -31,6 +31,7 @@ MCP Inspector is a powerful developer tool that acts as a visual client for MCP 
 - Debug authentication and transport issues
 - Compare different MCP implementations
 - Explore remote MCP services like Atlassian's Rovo
+<!-- 🤔 why include all the sections about remote/Atlassian MCP services without an exercise that connects to them? It feels distracting, maybe it chould be grouped below the solution as extra learning material or for a second exercise? -->
 
 ### Installing and Running MCP Inspector
 
@@ -88,14 +89,32 @@ For remote services like Atlassian's MCP, you need to:
 
 The MCP Inspector interface has several key sections:
 
+<!-- 🤔 Maybe bc it's not MCP Inspector v0.15.0, but I see several key differences from what's written -->
+
 **Sidebar (Left)**:
 
 - **Transport Type**: stdio, SSE, Streamable HTTP
+<!-- it's only titled "Command" for me -->
 - **Connection URL/Command**: Server endpoint or executable path
+<!-- I see Arguements and Environment variables instead of Authentication -->
 - **Authentication**: OAuth configuration and custom headers
 - **Configuration**: Inspector settings and proxy tokens
 
 **Main Panel (Right)**:
+
+<!-- My main panel has
+- Resources
+- Prompts
+- Tools
+- Ping
+- Sampling
+- Roots
+- Auth
+
+and a bottom panel with
+- History (Prety sure this is the new "Ray Protocol" section)
+- Server Notifications
+-->
 
 - **Tools**: List and test available tools
 - **Resources**: Browse server resources

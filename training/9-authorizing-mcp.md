@@ -2,6 +2,8 @@
 
 Here's what happens when VS Code (or another MCP client) connects to our OAuth-protected MCP server:
 
+<!-- todo: Recommend a mermaid diagram plugin. VScode supports no diagramming languages by default. - ex: Markdown Preview Mermaid Support -->
+
 ```mermaid
 sequenceDiagram
     participant VSCode as VS Code MCP Client
@@ -65,6 +67,8 @@ sequenceDiagram
     Server->>VSCode: Tool result
 ```
 
+<!-- TODO: Missing the "problem" & "verify" sections. & need more than just the diagram for the background info section.  -->
+
 ## Solution
 
 The OAuth 2.1 + PKCE authentication system is already implemented in the `src/auth/` folder. You only need to integrate it into your existing HTTP server.
@@ -114,7 +118,7 @@ const transports: Record<string, StreamableHTTPServerTransport> = {};
 **Key Changes:**
 
 1. **Line 5**: Import `addOAuthToApp` from the OAuth wrapper
-2. **Line 13**: Update comment to emphasize CORS comes first  
+2. **Line 13**: Update comment to emphasize CORS comes first
 3. **Line 17**: Add `WWW-Authenticate` header to CORS configuration for OAuth responses
 4. **Line 18**: Add `Access-Control-Expose-Headers` so browsers can read the WWW-Authenticate header
 5. **Lines 26-27**: Add OAuth endpoints and authentication middleware after CORS

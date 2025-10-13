@@ -22,6 +22,7 @@ Your task is to implement a streaming countdown tool that sends progress notific
 ### MCP Streaming Concepts
 
 **Notification Types:**
+
 MCP tools can send notifications during execution to provide real-time updates to clients. These notifications are sent through the tool execution context and transmitted via the SSE (Server-Sent Events) stream.
 
 **When to use streaming:**
@@ -75,6 +76,8 @@ await extra.sendNotification({
 - **`error`**: Error messages (for non-fatal errors)
 
 ### Content Streaming (For General Clients)
+
+<!-- what progressToken? -->
 
 When a client doesn't provide a `progressToken`, you can still stream intermediate content updates using structured notification messages:
 
@@ -297,6 +300,7 @@ server.registerTool(
    - Confirm smooth progress bar animation
 
 4. **Observe VS Code-specific features**:
+
    - **Progress bars** show completion percentage
    - **Real-time status messages** update inline
    - **Smooth animation** as progress advances
@@ -473,8 +477,10 @@ npx @modelcontextprotocol/inspector
 1. **Logging capabilities**: Server must declare `logging: {}` in capabilities to support notifications
 2. **RequestHandlerExtra**: Use `extra` parameter (not `ctx`) for tool context
 3. **Dual notification pattern**: Demonstrates two streaming approaches for different clients:
+
    - **Logging notifications**: Always sent for debugging/monitoring
    - **Progress notifications**: When VS Code provides `progressToken`
+
 4. **VS Code progress integration**: Use `notifications/progress` with `progressToken` from `extra._meta`
 5. **Progress calculation**: Send incremental progress (1, 2, 3...) with total for percentage display
 6. **Message format**: Include `level` and `data` fields for logging, `progress`/`total`/`message` for progress
