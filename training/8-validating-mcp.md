@@ -227,7 +227,7 @@ seconds: 10      → ✅ Valid
 
 ✏️ **Enhance your countdown tool with business rule validation**:
 
-1. **Keep existing schema validation** with Zod for basic type checking
+1. **Update existing schema validation** with Zod for basic type checking
 2. **Add runtime business rule** that limits countdown to 15 seconds maximum
 3. **Use clear error messages** that explain the limit and what the user entered
 4. **Test both valid and invalid inputs** to ensure validation works correctly
@@ -275,7 +275,7 @@ seconds: 10      → ✅ Valid
    - Try `seconds: 30` - should fail with clear error message
    - Try `seconds: 100` - should fail with clear error message
 
-2. **Test schema validation** (should still work):
+2. **Test schema validation**:
 
    - Try `seconds: -5` - should fail (negative number)
    - Try `seconds: 2.5` - should fail (not an integer)
