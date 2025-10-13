@@ -302,21 +302,20 @@ server.registerTool(
   "slugify",
   {
     title: "Slugify",
-      description: "Convert text to a URL-friendly slug",
-      inputSchema: {
-        text: z.string().describe("The text to convert into a URL-friendly slug")
-      }
+    description: "Convert text to a URL-friendly slug",
+    inputSchema: {
+      text: z.string().describe("The text to convert into a URL-friendly slug"),
     },
-    async ({ text }) => {
-      const slug = createSlug(text);
+  },
+  async ({ text }) => {
+    const slug = createSlug(text);
 
-      // FIXED: Using correct 'content' field
-      return {
-        content: [{ type: "text", text: slug }]
-      };
-    }
-  );
-}
+    // FIXED: Using correct 'content' field
+    return {
+      content: [{ type: "text", text: slug }],
+    };
+  }
+);
 ```
 
 ## Next Steps
