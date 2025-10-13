@@ -222,7 +222,7 @@ The server should:
    ```json
    {
      "servers": {
-       "mcp-training": {
+       "mcp-training-stdio": {
          "type": "stdio",
          "command": "./src/stdio-server.ts",
          "cwd": "${workspaceFolder}"
@@ -233,7 +233,7 @@ The server should:
 
    💡 **Note**: This works because the `stdio-server.ts` file has a shebang line that tells the system how to execute it with the TypeScript loader.
 
-2. **Start your MCP server**: In VS Code's MCP panel, find your "mcp-training" server and click the start button to launch it
+2. **Start your MCP server**: In VS Code's MCP panel, find your "mcp-training-stdio" server and click the start button to launch it
 
 3. **Test the server in VS Code**:
    - Open any file in VS Code
@@ -401,7 +401,7 @@ Add your server to VS Code's MCP configuration:
 
 **Key Changes:**
 
-1. **Lines 6-9**: Add new "mcp-training" server configuration using stdio transport
+1. **Lines 6-9**: Add new "mcp-training-stdio" server configuration using stdio transport
 2. **Command property**: Point to the executable stdio server file with proper shebang
 
 📁 **Reference Implementation**: [training/3-mcp-with-stdio/.vscode/mcp.json](./3-mcp-with-stdio/.vscode/mcp.json#L6-L9)
