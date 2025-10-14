@@ -73,7 +73,6 @@ After VSCode is setup, follow the instructions for either the DevContainer Setup
    - Make server files executable
    - Configure VS Code extensions
    - Set up port forwarding for MCP servers
-   <!-- todo: discuss: how does a learner verify these are setup correctly? -->
 
 **Benefits of dev container:**
 
@@ -187,7 +186,6 @@ sudo yum install git
 #### **Steps:**
 
 1. **Clone the repository**:
-   <!-- todo: minor discussion: these "clone" instructions should match the "clone" instructions in the DevContainer setup. There, it clones from inside VSCode terminal with different commands, this assumes use of a generic terminal. Maybe use the instructions for inside vscode, so there's no one fighting with `code .` not working? Those these are simpler and what most devs would do 🤷 -->
 
    ```bash
    git clone https://github.com/bitovi/mcp-training.git
