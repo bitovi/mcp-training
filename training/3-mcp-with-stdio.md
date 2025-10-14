@@ -215,17 +215,16 @@ The server should:
 
 🔍 Test your server in VS Code:
 
-1. **Add your server to VS Code's MCP configuration**:
+1. **Ensure your server is in VS Code's MCP configuration**:
 
-   Create or edit `.vscode/mcp.json` in your workspace root:
+   `.vscode/mcp.json` is already provided in your workspace root. Ensure it includes this server:
 
    ```json
    {
      "servers": {
-       "mcp-training": {
+       "mcp-training-stdio": {
          "type": "stdio",
-         "command": "./src/stdio-server.ts",
-         "cwd": "${workspaceFolder}"
+         "command": "./src/stdio-server.ts"
        }
      }
    }
@@ -233,7 +232,7 @@ The server should:
 
    💡 **Note**: This works because the `stdio-server.ts` file has a shebang line that tells the system how to execute it with the TypeScript loader.
 
-2. **Start your MCP server**: In VS Code's MCP panel, find your "mcp-training" server and click the start button to launch it
+2. **Start your MCP server**: In VS Code's MCP panel, find your "mcp-training-stdio" server and click the start button to launch it
 
 3. **Test the server in VS Code**:
    - Open any file in VS Code
@@ -259,7 +258,8 @@ The server should:
 
 ## Solution
 
-Here's the complete implementation:
+<details>
+<summary>Click to see the complete solution</summary>
 
 **Install the required dependencies**:
 
@@ -289,25 +289,16 @@ function createSlug(text: string): string {
   return slug;
 }
 
--// Factory function to create a new MCP server instance
+// Factory function to create a new MCP server instance
 -export function createMcpServer()/*: McpServer*/ {
--  // TODO: Create and configure the MCP server
--
--
--  // Register tools
--
--
--  // Return the configured server
--  //return server;
--}
-+// Factory function to create a new MCP server instance
 +export function createMcpServer(): McpServer {
+  // TODO: Create and configure the MCP server
 +  const server = new McpServer({
 +    name: "demo-server",
 +    version: "1.0.0"
 +  });
 +
-+  // Register tools
+ // Register tools
 +  server.registerTool(
 +    "slugify",
 +    {
@@ -326,6 +317,8 @@ function createSlug(text: string): string {
 +    }
 +  );
 +
+// Return the configured server
+-  //return server;
 +  return server;
 +}
 ```
@@ -334,11 +327,9 @@ function createSlug(text: string): string {
 
 1. **Lines 1-2**: Uncomment imports for `McpServer` and `z` (Zod) to enable MCP functionality
 2. **Line 15**: Add proper TypeScript return type annotation for the factory function
-3. **Line 16**: Remove "TODO:" from comment and implement server creation
-4. **Lines 16-19**: Create new `McpServer` instance with server metadata (name and version)
-5. **Line 21**: Remove "TODO:" from comment and implement tool registration
-6. **Lines 21-35**: Register the "slugify" tool with Zod schema validation and implementation
-7. **Line 37**: Remove "TODO:" and implement server return instead of commented placeholder
+3. **Lines 16-19**: Create new `McpServer` instance with server metadata (name and version)
+4. **Lines 21-35**: Register the "slugify" tool with Zod schema validation and implementation
+5. **Line 37**: Implement server return instead of commented placeholder
 
 📁 **Reference Implementation**: [training/3-mcp-with-stdio/src/mcp-server.ts](./3-mcp-with-stdio/src/mcp-server.ts#L1-L2,L15,L16-L19,L21-L35,L37)
 
@@ -354,15 +345,12 @@ import {createMcpServer} from "./mcp-server.js";
 
 try {
   // Create stdio transport
--
 +  const transport = new StdioServerTransport();
 
   // Connect server to transport
--
 +  await createMcpServer().connect(transport);
 
   // Log to stderr so it doesn't interfere with MCP protocol
--
 +  console.error("Demo MCP server running on stdio");
 +
 } catch (error) {
@@ -374,15 +362,15 @@ try {
 **Key Changes:**
 
 1. **Line 2**: Uncomment `StdioServerTransport` import to enable stdio communication
-2. **Line 7**: Replace empty line with stdio transport creation
-3. **Line 10**: Replace empty line with server connection to transport
-4. **Line 13**: Replace empty line with stderr logging to avoid interfering with MCP protocol
+2. **Line 7**: Add stdio transport creation
+3. **Line 10**: Add server connection to transport
+4. **Line 13**: Add stderr logging to avoid interfering with MCP protocol
 
 📁 **Reference Implementation**: [training/3-mcp-with-stdio/src/stdio-server.ts](./3-mcp-with-stdio/src/stdio-server.ts#L2,L7,L10,L13)
 
 ### 3. Configure VS Code MCP Integration (`.vscode/mcp.json`)
 
-Add your server to VS Code's MCP configuration:
+Verify your server is in VS Code's MCP configuration:
 
 ```diff
 {
@@ -401,10 +389,11 @@ Add your server to VS Code's MCP configuration:
 
 **Key Changes:**
 
-1. **Lines 6-9**: Add new "mcp-training" server configuration using stdio transport
-2. **Command property**: Point to the executable stdio server file with proper shebang
+1. **Lines 6-9**: Add new "mcp-training-stdio" server configuration using stdio transport
 
 📁 **Reference Implementation**: [training/3-mcp-with-stdio/.vscode/mcp.json](./3-mcp-with-stdio/.vscode/mcp.json#L6-L9)
+
+</details>
 
 ## Next Steps
 

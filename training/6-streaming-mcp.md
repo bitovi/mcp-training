@@ -22,6 +22,7 @@ Your task is to implement a streaming countdown tool that sends progress notific
 ### MCP Streaming Concepts
 
 **Notification Types:**
+
 MCP tools can send notifications during execution to provide real-time updates to clients. These notifications are sent through the tool execution context and transmitted via the SSE (Server-Sent Events) stream.
 
 **When to use streaming:**
@@ -247,11 +248,17 @@ server.registerTool(
 
    ```bash
    npx @modelcontextprotocol/inspector
+   # Note: If port 6277 is in use, set a new `SERVER_PORT`.
+   # You can also optionally change the URL by setting a new `CLIENT_PORT`.
+   # Example of changing both:
+   # CLIENT_PORT=8080 SERVER_PORT=6278 npx @modelcontextprotocol/inspector
    ```
 
-   - Transport Type: "Streamable HTTP"
-   - URL: `http://localhost:3000/mcp`
-   - Click "Connect"
+In the MCP Inspector, select:
+
+- Transport Type: "Streamable HTTP"
+- URL: `http://localhost:3000/mcp`
+- Click "Connect"
 
 3. **Open the Notifications panel** in MCP Inspector to see real-time events
 
@@ -297,6 +304,7 @@ server.registerTool(
    - Confirm smooth progress bar animation
 
 4. **Observe VS Code-specific features**:
+
    - **Progress bars** show completion percentage
    - **Real-time status messages** update inline
    - **Smooth animation** as progress advances
@@ -338,7 +346,8 @@ Final result: 🚀 Blastoff!
 
 ## Solution
 
-Here's the complete implementation of the streaming countdown tool:
+<details>
+<summary>Click to see the complete solution of the streaming countdown tool</summary>
 
 ### Updated MCP Server with Streaming
 
@@ -473,8 +482,10 @@ npx @modelcontextprotocol/inspector
 1. **Logging capabilities**: Server must declare `logging: {}` in capabilities to support notifications
 2. **RequestHandlerExtra**: Use `extra` parameter (not `ctx`) for tool context
 3. **Dual notification pattern**: Demonstrates two streaming approaches for different clients:
+
    - **Logging notifications**: Always sent for debugging/monitoring
    - **Progress notifications**: When VS Code provides `progressToken`
+
 4. **VS Code progress integration**: Use `notifications/progress` with `progressToken` from `extra._meta`
 5. **Progress calculation**: Send incremental progress (1, 2, 3...) with total for percentage display
 6. **Message format**: Include `level` and `data` fields for logging, `progress`/`total`/`message` for progress
@@ -482,6 +493,8 @@ npx @modelcontextprotocol/inspector
 8. **Simple final result**: Clean "🚀 Blastoff!" message
 
 This streaming implementation provides **native VS Code progress bar integration** and **logging for debugging** - demonstrating MCP streaming capabilities!
+
+</details>
 
 ## Next Steps
 

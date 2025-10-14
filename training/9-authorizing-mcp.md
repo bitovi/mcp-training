@@ -67,6 +67,9 @@ sequenceDiagram
 
 ## Solution
 
+<details>
+<summary>Click to see the complete solution for adding OAuth 2.1 + PKCE authentication to your MCP server</summary>
+
 The OAuth 2.1 + PKCE authentication system is already implemented in the `src/auth/` folder. You only need to integrate it into your existing HTTP server.
 
 ### Update HTTP Server (`src/http-server.ts`)
@@ -114,12 +117,14 @@ const transports: Record<string, StreamableHTTPServerTransport> = {};
 **Key Changes:**
 
 1. **Line 5**: Import `addOAuthToApp` from the OAuth wrapper
-2. **Line 13**: Update comment to emphasize CORS comes first  
+2. **Line 13**: Update comment to emphasize CORS comes first
 3. **Line 17**: Add `WWW-Authenticate` header to CORS configuration for OAuth responses
 4. **Line 18**: Add `Access-Control-Expose-Headers` so browsers can read the WWW-Authenticate header
 5. **Lines 26-27**: Add OAuth endpoints and authentication middleware after CORS
 
 That's it! The OAuth authentication system will now protect all `/mcp` routes.
+
+</details>
 
 ## Next Steps
 

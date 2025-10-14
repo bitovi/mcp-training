@@ -50,6 +50,8 @@ When you run the inspector, it will:
 2. Open a web interface (default port 6274)
 3. Connect to your specified server (if provided)
 
+> Tip to simplify auth: look in your terminal for the url to `🔗 Open inspector with token pre-filled:`
+
 ### Connecting to Local stdio Servers
 
 For local development, you can directly specify your server script:
@@ -261,7 +263,8 @@ return {
 
 ## Solution
 
-Here's the complete solution for debugging with MCP Inspector:
+<details>
+<summary>Click to see the complete solution for debugging with MCP Inspector</summary>
 
 **Connect to your local server**:
 
@@ -302,22 +305,23 @@ server.registerTool(
   "slugify",
   {
     title: "Slugify",
-      description: "Convert text to a URL-friendly slug",
-      inputSchema: {
-        text: z.string().describe("The text to convert into a URL-friendly slug")
-      }
+    description: "Convert text to a URL-friendly slug",
+    inputSchema: {
+      text: z.string().describe("The text to convert into a URL-friendly slug"),
     },
-    async ({ text }) => {
-      const slug = createSlug(text);
+  },
+  async ({ text }) => {
+    const slug = createSlug(text);
 
-      // FIXED: Using correct 'content' field
-      return {
-        content: [{ type: "text", text: slug }]
-      };
-    }
-  );
-}
+    // FIXED: Using correct 'content' field
+    return {
+      content: [{ type: "text", text: slug }],
+    };
+  }
+);
 ```
+
+</details>
 
 ## Next Steps
 
