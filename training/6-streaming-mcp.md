@@ -77,8 +77,6 @@ await extra.sendNotification({
 
 ### Content Streaming (For General Clients)
 
-<!-- what progressToken? -->
-
 When a client doesn't provide a `progressToken`, you can still stream intermediate content updates using structured notification messages:
 
 ```typescript
@@ -250,11 +248,17 @@ server.registerTool(
 
    ```bash
    npx @modelcontextprotocol/inspector
+   # Note: If port 6277 is in use, set a new `SERVER_PORT`.
+   # You can also optionally change the URL by setting a new `CLIENT_PORT`.
+   # Example of changing both:
+   # CLIENT_PORT=8080 SERVER_PORT=6278 npx @modelcontextprotocol/inspector
    ```
 
-   - Transport Type: "Streamable HTTP"
-   - URL: `http://localhost:3000/mcp`
-   - Click "Connect"
+In the MCP Inspector, select:
+
+- Transport Type: "Streamable HTTP"
+- URL: `http://localhost:3000/mcp`
+- Click "Connect"
 
 3. **Open the Notifications panel** in MCP Inspector to see real-time events
 
@@ -342,7 +346,8 @@ Final result: 🚀 Blastoff!
 
 ## Solution
 
-Here's the complete implementation of the streaming countdown tool:
+<details>
+<summary>Click to see the complete solution of the streaming countdown tool</summary>
 
 ### Updated MCP Server with Streaming
 
@@ -488,6 +493,8 @@ npx @modelcontextprotocol/inspector
 8. **Simple final result**: Clean "🚀 Blastoff!" message
 
 This streaming implementation provides **native VS Code progress bar integration** and **logging for debugging** - demonstrating MCP streaming capabilities!
+
+</details>
 
 ## Next Steps
 

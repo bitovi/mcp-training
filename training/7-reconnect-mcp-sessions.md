@@ -158,7 +158,7 @@ if (sessionId && transports[sessionId]) {
 3. **Connect second Inspector instance**:
 
    - Open a new terminal
-   - Run the same `npx @modelcontextprotocol/inspector` command
+   - Run `SERVER_PORT=6278 npx @modelcontextprotocol/inspector` to start a second instance of the inspector
    - Connect to the same URL
    - Verify it gets a different session ID
 
@@ -201,7 +201,8 @@ if (sessionId && transports[sessionId]) {
 
 ## Solution
 
-Here's the complete implementation of session-managed HTTP MCP server, showing the key changes from the stateless HTTP server:
+<details>
+<summary>Click to see the complete solution of session-managed HTTP MCP server, showing the key changes from the stateless HTTP server</summary>
 
 ### Enhanced HTTP Server with Session Management
 
@@ -356,8 +357,7 @@ npm run dev:http
 npx @modelcontextprotocol/inspector
 
 # Terminal 2
-npx @modelcontextprotocol/inspector
-# TODO: fix to run in new port: gets error `❌  Proxy Server PORT IS IN USE at port 6277 ❌`.
+SERVER_PORT=6278 npx @modelcontextprotocol/inspector
 
 # Each should get a different session ID
 ```
@@ -384,6 +384,8 @@ curl -X DELETE http://localhost:3000/mcp \
 5. **Error Handling**: Invalid session IDs return 400 Bad Request with clear error messages
 
 This implementation provides proper isolation between clients while maintaining efficient resource usage and cleanup.
+
+</details>
 
 ## Next Steps
 

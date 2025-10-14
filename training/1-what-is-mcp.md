@@ -23,8 +23,6 @@ Think of MCP as a bridge between AI agents and external services. Instead of eac
 
 ## Terminology Note
 
-<!-- comment: I had multiple comments about why we weren't defining client, server and transport clearly until I found them at the very bottom. List them early so learners can find the definition asap. We might also want to list them again at the end as a key takeaway, but definitely include them at the top. -->
-
 Throughout this training, we'll use "server" and "tool provider" consistently with the MCP SDK terminology. Remember:
 
 - **Client**: The AI agent, IDE, or chat application
@@ -48,8 +46,6 @@ MCP servers can expose four main types of capabilities:
 
 [Resources](https://modelcontextprotocol.io/specification/2025-06-18/server/resources) are readable URIs that return content, similar to files or dynamic lookups. Resources represent **data that exists** rather than **actions to perform**.
 
-<!-- thought: move "Key differences" to the bottom of "## Resources" and consolidated with "Example context patterns" that is also listing the differences. Bonus: "Examples" could then be consolidated into the paragraph above, like how "### Tools" has it. Fewer bold list headings = easier to understand structure -->
-
 **Key differences from tools:**
 
 - **Discoverable**: Agents can list and browse available resources
@@ -66,8 +62,6 @@ MCP servers can expose four main types of capabilities:
 - Log files
 - Project documentation
 
-<!-- Thought: Agent capabilities and Context efficiency lists make the Resources section feel too long. and since caching is mentioned in 3 lists, it feels redundant. I'm wondering if these could be consolidated -->
-
 **Agent capabilities with resources:**
 
 - VS Code and other agents can treat resources as virtual files
@@ -82,8 +76,6 @@ MCP servers can expose four main types of capabilities:
 - **Selective loading**: Agents can load only relevant parts of large resources
 - **Reference vs execution**: Resources can be referenced by URI without full content in context
 - **Tools require execution context**: Each tool call needs parameters, execution trace, and results
-
-<!-- this is where we should start all Tools vs Resources lists. "Example context patterns" should be renamed to make it clear that it's a comparison list, if it's going to stay as it's own list -->
 
 **Example context patterns:**
 

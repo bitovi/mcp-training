@@ -114,8 +114,6 @@ Streamable HTTP introduces session management through headers:
 
 ### Connecting to HTTP MCP Services
 
-<!-- current exercises don't connect to atlassians service. I think those instructions should move here. -->
-
 You've already learned how to connect to HTTP MCP services in step 4 when you connected to Atlassian's service! The same principles apply:
 
 1. **Transport Type**: Select "Streamable HTTP" or "SSE" in MCP Inspector
@@ -125,17 +123,15 @@ You've already learned how to connect to HTTP MCP services in step 4 when you co
 
 ### Required Dependencies
 
-For building HTTP MCP servers, you'll need:
+When building your own HTTP MCP servers, you must add a web framework that can handle the request/response objects:
 
-<!-- I installed hono, but didn't do anything with it. was it actually needed? -->
+**[Express.js](https://expressjs.com/)**: Mature, well-documented web framework
 
-**[Hono](https://hono.dev/)**: Fast, lightweight web framework
-
-- **Why Hono**: TypeScript-first, edge-runtime compatible, minimal overhead
-- **Alternatives**: Express.js (heavier), Fastify (more complex), native Node.js (verbose)
+- **Why Express**: Battle-tested, extensive ecosystem, familiar to most developers
+- **Alternatives**: Hono (edge-optimized), Fastify (performance-focused), native Node.js (verbose)
 
 ```bash
-npm install hono @modelcontextprotocol/sdk
+npm install express @types/express @modelcontextprotocol/sdk
 ```
 
 ### Security Considerations
@@ -168,7 +164,7 @@ src/
 ├── stdio-server.ts     (existing)
 ```
 
-**Add a package.json script** for running the HTTP server:
+**Note the package.json script** for running the HTTP server:
 
 ```json
 {
@@ -204,28 +200,9 @@ src/
 
 ✏️ **Test with VS Code**:
 
-1. **Update your `.vscode/mcp.json`**:
+1. **Test both servers** work in VS Code's MCP panel
 
-   ```json
-   {
-     "servers": {
-       "mcp-training-http": {
-         "type": "http",
-         "url": "http://localhost:3000/mcp"
-       },
-       "mcp-training-stdio": {
-         "type": "stdio",
-         "command": "./src/stdio-server.ts"
-       }
-     }
-   }
-   ```
-
-<!-- what mcp panel? -->
-
-2. **Test both servers** work in VS Code's MCP panel
-
-3. **Compare functionality** between stdio and HTTP versions
+2. **Compare functionality** between stdio and HTTP versions
 
 💡 **Expected behaviors**:
 
@@ -239,14 +216,15 @@ src/
 ⚠️ **Troubleshooting tips**:
 
 - If port 3000 is busy, change it in your server code
-- Check that Hono is properly installed with `npm list hono`
+- Check that Express is properly installed with `npm list express`
 - Verify the `/mcp` endpoint path is exactly correct
 - Look for CORS issues if connecting from different origins
 - Check console output for server startup messages and errors
 
 ## Solution
 
-Here's the complete solution for creating a production-ready HTTP MCP server:
+<details>
+<summary>Click to see the complete solution for creating a production-ready HTTP MCP server</summary>
 
 ### Step 1: Install Dependencies
 
@@ -287,18 +265,15 @@ app.use((req, res, next) => {
 });
 
 // Create a single transport for all requests (stateless mode)
--
 +const transport = new StreamableHTTPServerTransport({
 +  sessionIdGenerator: undefined, // Stateless mode - no session management
 +});
 
 // Connect the MCP server to the transport
--
 +await createMcpServer().connect(transport);
 
 // POST /mcp - Client to server messages (tool calls, etc.)
 app.post('/mcp', async (req, res) => {
--
 +  try {
 +    await transport.handleRequest(req, res, req.body);
 +  } catch (error) {
@@ -309,7 +284,6 @@ app.post('/mcp', async (req, res) => {
 
 // Helper function for GET and DELETE requests that require existing sessions
 const handleExistingSession = async (req: express.Request, res: express.Response) => {
--
 +  try {
 +    await transport.handleRequest(req, res);
 +  } catch (error) {
@@ -329,37 +303,6 @@ const handleExistingSession = async (req: express.Request, res: express.Response
 
 📁 **Reference Implementation**: [training/5-mcp-services/src/http-server.ts](./5-mcp-services/src/http-server.ts#L3-L4,L26-L28,L31,L34-L40,L43-L49)
 
-### Step 3: Update VS Code Configuration (`.vscode/mcp.json`)
-
-Add HTTP server configuration alongside existing stdio server:
-
-```diff
-{
-  "servers": {
-    "github": {
-      "url": "https://api.githubcopilot.com/mcp/",
-      "type": "http"
-    },
-    "mcp-training-stdio": {
-      "type": "stdio",
-      "command": "./src/stdio-server.ts"
-+    },
-+    "mcp-training-http": {
-+      "type": "http",
-+      "url": "http://localhost:3000/mcp"
-    }
-  }
-}
-```
-
-**Key Changes:**
-
-1. **Lines 10-13**: Add new "mcp-training-http" server configuration
-2. **Line 11**: Configure as HTTP transport type
-3. **Line 12**: Point to localhost HTTP endpoint on port 3000
-
-📁 **Reference Implementation**: [training/5-mcp-services/.vscode/mcp.json](./5-mcp-services/.vscode/mcp.json#L10-L13)
-
 ### Step 4: Test the Implementation
 
 **Start the HTTP server**:
@@ -372,12 +315,15 @@ npm run dev:http
 
 ```bash
 npx @modelcontextprotocol/inspector
-# Set Transport Type: "Streamable HTTP"
-# Set URL: "http://localhost:3000/mcp"
-# Click Connect and test your tools
+# In browser MCP Inspector:
+# - Set Transport Type: "Streamable HTTP"
+# - Set URL: "http://localhost:3000/mcp"
+# - Click Connect and test your tools
 ```
 
 **Test with VS Code**: Open the MCP panel and verify both servers work
+
+</details>
 
 ## Next Steps
 

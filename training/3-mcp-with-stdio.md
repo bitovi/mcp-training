@@ -155,7 +155,6 @@ const userInfoSchema = {
   age: z.number().min(18).describe("User's age (must be 18 or older)"),
 };
 
-// 🤔 z.toJSONSchema requires zod 4. zod 3 is what's currenlty installed on this project. & elsewhere this page references z.schema instead
 // McpServer can call methods like this to get JSON Schema:
 console.log(z.toJSONSchema(userInfoSchema.name));
 // Output: {
@@ -260,9 +259,8 @@ The server should:
 
 ## Solution
 
-<!-- 🙋 was this solution supposed to be in an expandable element, like on previous pages? on this page and the next they are no longer expandable -->
-
-Here's the complete implementation:
+<details>
+<summary>Click to see the complete solution</summary>
 
 **Install the required dependencies**:
 
@@ -292,25 +290,16 @@ function createSlug(text: string): string {
   return slug;
 }
 
--// Factory function to create a new MCP server instance
+// Factory function to create a new MCP server instance
 -export function createMcpServer()/*: McpServer*/ {
--  // TODO: Create and configure the MCP server
--
--
--  // Register tools
--
--
--  // Return the configured server
--  //return server;
--}
-+// Factory function to create a new MCP server instance
 +export function createMcpServer(): McpServer {
+  // TODO: Create and configure the MCP server
 +  const server = new McpServer({
 +    name: "demo-server",
 +    version: "1.0.0"
 +  });
 +
-+  // Register tools
+ // Register tools
 +  server.registerTool(
 +    "slugify",
 +    {
@@ -329,21 +318,19 @@ function createSlug(text: string): string {
 +    }
 +  );
 +
+// Return the configured server
+-  //return server;
 +  return server;
 +}
 ```
 
 **Key Changes:**
 
-<!-- these should not include "remove todo" as key changes. Also, it can be better for student comprehension to leave the "todos" in the solution, since it makes it uses the existing mental "todo" context. -->
-
 1. **Lines 1-2**: Uncomment imports for `McpServer` and `z` (Zod) to enable MCP functionality
 2. **Line 15**: Add proper TypeScript return type annotation for the factory function
-3. **Line 16**: Remove "TODO:" from comment and implement server creation
-4. **Lines 16-19**: Create new `McpServer` instance with server metadata (name and version)
-5. **Line 21**: Remove "TODO:" from comment and implement tool registration
-6. **Lines 21-35**: Register the "slugify" tool with Zod schema validation and implementation
-7. **Line 37**: Remove "TODO:" and implement server return instead of commented placeholder
+3. **Lines 16-19**: Create new `McpServer` instance with server metadata (name and version)
+4. **Lines 21-35**: Register the "slugify" tool with Zod schema validation and implementation
+5. **Line 37**: Implement server return instead of commented placeholder
 
 📁 **Reference Implementation**: [training/3-mcp-with-stdio/src/mcp-server.ts](./3-mcp-with-stdio/src/mcp-server.ts#L1-L2,L15,L16-L19,L21-L35,L37)
 
@@ -359,16 +346,12 @@ import {createMcpServer} from "./mcp-server.js";
 
 try {
   // Create stdio transport
--
 +  const transport = new StdioServerTransport();
 
   // Connect server to transport
--
 +  await createMcpServer().connect(transport);
 
   // Log to stderr so it doesn't interfere with MCP protocol
-  // 🙋🙋🙋🙋🙋 I wasn't able to find these logs in the Output
--
 +  console.error("Demo MCP server running on stdio");
 +
 } catch (error) {
@@ -380,9 +363,9 @@ try {
 **Key Changes:**
 
 1. **Line 2**: Uncomment `StdioServerTransport` import to enable stdio communication
-2. **Line 7**: Replace empty line with stdio transport creation
-3. **Line 10**: Replace empty line with server connection to transport
-4. **Line 13**: Replace empty line with stderr logging to avoid interfering with MCP protocol
+2. **Line 7**: Add stdio transport creation
+3. **Line 10**: Add server connection to transport
+4. **Line 13**: Add stderr logging to avoid interfering with MCP protocol
 
 📁 **Reference Implementation**: [training/3-mcp-with-stdio/src/stdio-server.ts](./3-mcp-with-stdio/src/stdio-server.ts#L2,L7,L10,L13)
 
@@ -408,9 +391,10 @@ Add your server to VS Code's MCP configuration:
 **Key Changes:**
 
 1. **Lines 6-9**: Add new "mcp-training-stdio" server configuration using stdio transport
-2. **Command property**: Point to the executable stdio server file with proper shebang
 
 📁 **Reference Implementation**: [training/3-mcp-with-stdio/.vscode/mcp.json](./3-mcp-with-stdio/.vscode/mcp.json#L6-L9)
+
+</details>
 
 ## Next Steps
 
