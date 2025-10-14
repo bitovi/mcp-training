@@ -215,17 +215,16 @@ The server should:
 
 🔍 Test your server in VS Code:
 
-1. **Add your server to VS Code's MCP configuration**:
+1. **Ensure your server is in VS Code's MCP configuration**:
 
-   Create or edit `.vscode/mcp.json` in your workspace root:
+   `.vscode/mcp.json` is already provided in your workspace root. Ensure it includes this server:
 
    ```json
    {
      "servers": {
        "mcp-training-stdio": {
          "type": "stdio",
-         "command": "./src/stdio-server.ts",
-         "cwd": "${workspaceFolder}"
+         "command": "./src/stdio-server.ts"
        }
      }
    }
@@ -371,7 +370,7 @@ try {
 
 ### 3. Configure VS Code MCP Integration (`.vscode/mcp.json`)
 
-Add your server to VS Code's MCP configuration:
+Verify your server is in VS Code's MCP configuration:
 
 ```diff
 {

@@ -160,7 +160,7 @@ Using Github Copilot Chat, you should be able to:
 <details>
 <summary>Click to see the complete solution</summary>
 
-### 1. Create `.vscode/mcp.json`
+### 1. Verify `.vscode/mcp.json` has already been provided
 
 ```json
 {
