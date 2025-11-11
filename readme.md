@@ -2,6 +2,8 @@
 
 This comprehensive training teaches you how to build production-ready MCP (Model Context Protocol) servers using Node.js and TypeScript. You'll progress from basic concepts to advanced features like authentication, streaming, and validation.
 
+👉 Bitovi can help you integrate this into your own SDLC workflow: [AI for Software Teams](https://www.bitovi.com/ai-for-software-teams)
+
 ## What You'll Learn
 
 By the end of this training, you'll understand how to:
