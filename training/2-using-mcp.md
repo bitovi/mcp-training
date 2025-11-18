@@ -16,13 +16,11 @@ Learn how to connect to and use a real production MCP server by configuring VS C
 
 ## Problem
 
-Before building your own MCP server, you need to understand how MCP works in practice. You want to use GitHub Copilot to help manage GitHub issues by connecting to GitHub's MCP server, creating a new issue in the `bitovi/mcp-training` repository, and then closing it.
-
-This hands-on experience will show you how agents discover tools, handle authentication, and make tool calls in a real-world scenario.
+Before building an MCP server, your first task is to use GitHub Copilot to help manage GitHub issues by connecting to GitHub's MCP server, creating a new issue in the `bitovi/mcp-training` repository, and then closing it. This hands-on experience will help you understand how MCP works in practice - showing how agents discover tools, handle authentication, and make tool calls in a real-world scenario.
 
 ## What you need to know
 
-📝 **Reference**: [MCP Specification](https://spec.modelcontextprotocol.io/)
+📝 **Reference**: [MCP Specification](https://modelcontextprotocol.io/specification/2025-06-18)
 
 ### MCP Client Configuration in VS Code
 
@@ -144,7 +142,7 @@ When working with AI agents that have access to MCP tools, effective prompting i
 
 **Example Effective Prompts:**
 
-- ✅ "Create a new issue in bitovi/mcp-training with title 'Test MCP Integration' and describe it as a training exercise"
+- ✅ "Create a new issue in microsoft/vscode with title 'Feature Request: Better Terminal Integration' and describe the need for improved terminal features"
 - ❌ "Make an issue about testing"
 - ✅ "Close issue #42 in the mcp-training repository"
 - ❌ "Close that issue"
@@ -162,7 +160,7 @@ Using Github Copilot Chat, you should be able to:
 <details>
 <summary>Click to see the complete solution</summary>
 
-### 1. Create `.vscode/mcp.json`
+### 1. Verify `.vscode/mcp.json` has already been provided
 
 ```json
 {

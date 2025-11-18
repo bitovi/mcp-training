@@ -12,9 +12,8 @@ Learn about the Model Context Protocol (MCP) and understand how it enables AI ag
   - [stdio](#stdio)
   - [Streamable HTTP](#streamable-http)
 - [How Agents Use MCP](#how-agents-use-mcp)
-- [MCP Architecture](#mcp-architecture)
-- [Key Benefits](#key-benefits)
 - [Terminology Note](#terminology-note)
+- [Next Steps](#next-steps)
 
 ## What is MCP?
 
@@ -22,13 +21,21 @@ MCP (Model Context Protocol) is a **protocol** based on JSON‑RPC that runs ove
 
 Think of MCP as a bridge between AI agents and external services. Instead of each agent needing custom integrations for every service, MCP provides a standardized way for agents to discover and use capabilities from different providers.
 
+## Terminology Note
+
+Throughout this training, we'll use "server" and "tool provider" consistently with the MCP SDK terminology. Remember:
+
+- **Client**: The AI agent, IDE, or chat application
+- **Server**: The MCP service that provides tools, resources, and prompts
+- **Transport**: The communication layer for client and server (stdio or Streamable HTTP)
+
 ## Core MCP Capabilities
 
 MCP servers can expose four main types of capabilities:
 
 ### Tools
 
-[Tools](https://spec.modelcontextprotocol.io/specification/2025-06-18/server/tools) are RPC‑like functions that clients can call to perform actions or retrieve data. Examples:
+[Tools](https://modelcontextprotocol.io/specification/2025-06-18/server/tools) are RPC‑like functions that clients can call to perform actions or retrieve data. Examples:
 
 - Search Jira issues
 - Create a GitHub issue
@@ -37,7 +44,7 @@ MCP servers can expose four main types of capabilities:
 
 ### Resources
 
-[Resources](https://spec.modelcontextprotocol.io/specification/2025-06-18/server/resources) are readable URIs that return content, similar to files or dynamic lookups. Resources represent **data that exists** rather than **actions to perform**.
+[Resources](https://modelcontextprotocol.io/specification/2025-06-18/server/resources) are readable URIs that return content, similar to files or dynamic lookups. Resources represent **data that exists** rather than **actions to perform**.
 
 **Key differences from tools:**
 
@@ -84,7 +91,7 @@ MCP servers can expose four main types of capabilities:
 
 ### Prompts
 
-[Prompts](https://spec.modelcontextprotocol.io/specification/2025-06-18/server/prompts) are pre‑defined prompt templates exposed by the server that clients can use. Examples:
+[Prompts](https://modelcontextprotocol.io/specification/2025-06-18/server/prompts) are pre‑defined prompt templates exposed by the server that clients can use. Examples:
 
 - Code review templates
 - Meeting summary formats
@@ -92,7 +99,7 @@ MCP servers can expose four main types of capabilities:
 
 ### Sampling Hooks
 
-[Sampling hooks](https://spec.modelcontextprotocol.io/specification/2025-06-18/client/sampling) allow servers to **use the client's AI capabilities** for text/data generation within tool workflows. Sampling hooks enable servers to leverage the client's AI model without needing their own.
+[Sampling hooks](https://modelcontextprotocol.io/specification/2025-06-18/client/sampling) allow servers to **use the client's AI capabilities** for text/data generation within tool workflows. Sampling hooks enable servers to leverage the client's AI model without needing their own.
 
 **How it works:**
 
@@ -122,7 +129,7 @@ MCP servers can expose four main types of capabilities:
 
 ## MCP Transports (2025)
 
-In 2025, MCP supports two primary transports:
+In 2025, MCP supports two primary transport mechanisms for client-server communication, called [transports](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports):
 
 ### stdio
 
@@ -150,14 +157,6 @@ The typical flow of an agent using MCP services:
 4. **Prompt Usage**: Agent uses server-provided prompts for consistent formatting
 5. **Streaming Results**: Agent receives real-time updates through optional SSE
 6. **Context Updates**: Agent incorporates results into its working context
-
-## Terminology Note
-
-Throughout this training, we'll use "server" and "tool provider" consistently with the MCP SDK terminology. Remember:
-
-- **Client**: The AI agent, IDE, or chat application
-- **Server**: The MCP service that provides tools, resources, and prompts
-- **Transport**: The communication layer (stdio or Streamable HTTP)
 
 ## Next Steps
 

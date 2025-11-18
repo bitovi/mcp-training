@@ -227,7 +227,7 @@ seconds: 10      → ✅ Valid
 
 ✏️ **Enhance your countdown tool with business rule validation**:
 
-1. **Keep existing schema validation** with Zod for basic type checking
+1. **Update existing schema validation** with Zod for basic type checking
 2. **Add runtime business rule** that limits countdown to 15 seconds maximum
 3. **Use clear error messages** that explain the limit and what the user entered
 4. **Test both valid and invalid inputs** to ensure validation works correctly
@@ -235,7 +235,7 @@ seconds: 10      → ✅ Valid
 
 **Expected validation logic:**
 
-- Schema validation: Ensure `seconds` is a positive integer (required by default)
+- Schema validation: Ensure `seconds` is a positive integer (required by default) & that the success message must be a non-empty string.
 - Business rule: Reject any countdown > 15 seconds with helpful error message
 - Error format: Clear, user-facing message that explains the constraint
 
@@ -275,7 +275,7 @@ seconds: 10      → ✅ Valid
    - Try `seconds: 30` - should fail with clear error message
    - Try `seconds: 100` - should fail with clear error message
 
-2. **Test schema validation** (should still work):
+2. **Test schema validation**:
 
    - Try `seconds: -5` - should fail (negative number)
    - Try `seconds: 2.5` - should fail (not an integer)
@@ -314,7 +314,8 @@ seconds: 10      → ✅ Valid
 
 ## Solution
 
-Here's the enhanced countdown tool with business rule validation, showing the key changes from the streaming implementation:
+<details>
+<summary>Click to see the complete enhanced countdown tool solution with business rule validation, showing the key changes from the streaming implementation</summary>
 
 ### Enhanced MCP Server with Validation
 
@@ -436,6 +437,8 @@ seconds: 5, message: 123        → ❌ Zod schema error (message must be string
 ```
 
 This implementation demonstrates the layered validation approach: schema validation for structure/types, followed by business rule validation for domain-specific constraints, both with clear user-facing error messages.
+
+</details>
 
 ## Next Steps
 
