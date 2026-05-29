@@ -18,7 +18,7 @@
   "author": "Bitovi",
   "license": "MIT",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.19.1",
+    "@modelcontextprotocol/sdk": "^1.26.0",
     "@node-oauth/express-oauth-server": "^4.1.4",
     "@node-oauth/oauth2-server": "^5.2.1",
     "@types/express": "^5.0.3",
