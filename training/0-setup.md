@@ -225,8 +225,7 @@ npm run dev:http
 You should see:
 
 ```
-🚀 MCP HTTP Server starting on http://localhost:3000
-📡 MCP endpoint: http://localhost:3000/mcp
+MCP HTTP server listening on http://127.0.0.1:3000/mcp
 ```
 
 Press `Ctrl+C` to stop the server.
