@@ -1,5 +1,5 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
+import { McpServer } from "@modelcontextprotocol/server";
+import * as z from "zod/v4";
 
 function createSlug(text: string): string {
   const slug = text
@@ -9,21 +9,15 @@ function createSlug(text: string): string {
     .trim()
     .replace(/[\s_-]+/g, "-")
     .replace(/^-+|-+$/g, "");
-  
+
   return slug;
 }
 
 // Factory function to create a new MCP server instance
 export function createMcpServer(): McpServer {
-  // Create and configure the MCP server
-  const server = new McpServer({ 
-    name: "demo-server", 
-    version: "1.0.0" 
-  }, {
-    capabilities: {
-      tools: {},
-      logging: {}
-    }
+  const server = new McpServer({
+    name: "demo-server",
+    version: "1.0.0"
   });
 
   // Register tools
@@ -32,15 +26,15 @@ export function createMcpServer(): McpServer {
     {
       title: "Slugify",
       description: "Convert text to a URL-friendly slug",
-      inputSchema: {
+      inputSchema: z.object({
         text: z.string().describe("The text to convert into a URL-friendly slug")
-      }
+      })
     },
     async ({ text }) => {
       const slug = createSlug(text);
-      
-      return { 
-        content: [{ type: "text", text: slug }] 
+
+      return {
+        content: [{ type: "text", text: slug }]
       };
     }
   );
@@ -51,35 +45,27 @@ export function createMcpServer(): McpServer {
     {
       title: "Countdown Timer",
       description: "Counts down from a number with real-time progress updates",
-      inputSchema: {
+      inputSchema: z.object({
         seconds: z.number().describe("Number of seconds to count down from")
-      }
+      })
     },
-    async ({ seconds }, extra) => {
-      // Stream countdown progress with dual notification patterns
+    async ({ seconds }, ctx) => {
+      const progressToken = ctx.mcpReq._meta?.progressToken;
+
+      // Stream countdown progress
       for (let i = seconds; i > 0; i--) {
-        // 1. Logging notification (for MCP Inspector debugging)
-        await extra.sendNotification({
-          method: "notifications/message",
-          params: {
-            level: "info",
-            data: `Countdown: ${i} seconds remaining`
-          }
-        });
-        
-        // 2. Progress notification (when VS Code provides progressToken)
-        if (extra._meta?.progressToken) {
-          await extra.sendNotification({
+        if (progressToken !== undefined) {
+          await ctx.mcpReq.notify({
             method: "notifications/progress",
             params: {
-              progressToken: extra._meta.progressToken,
+              progressToken,
               progress: seconds - i + 1,  // Current step (1, 2, 3...)
               total: seconds,              // Total steps
               message: `${i} seconds remaining!`
             }
           });
         }
-        
+
         // Wait 1 second before next update
         await new Promise(resolve => setTimeout(resolve, 1000));
       }

@@ -104,7 +104,7 @@ For explanatory/foundational steps (like "What is MCP?"):
 
 ### Dependencies
 
-- Node.js 18+ required
+- Node.js 20+ required
 - TypeScript for all examples
 - Zod for schema validation
 

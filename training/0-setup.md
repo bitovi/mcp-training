@@ -2,6 +2,8 @@
 
 This guide will help you set up your development environment for building Model Context Protocol (MCP) servers using Node.js and TypeScript. By the end of this setup, you'll have everything needed to follow the hands-on training steps.
 
+> **Spec version:** this training targets **[MCP Specification 2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28/changelog)**, the current stable release.
+
 Choose either DevContainer Setup (recommended) or Local Setup below.
 
 - [Introduction](#introduction)
@@ -44,7 +46,7 @@ Choose either DevContainer Setup (recommended) or Local Setup below.
    - Or use Command Palette (`Ctrl+Shift+P`): "Dev Containers: Reopen in Container"
 
 3. **Wait for setup to complete** - The container will automatically:
-   - Install Node.js 20
+   - Provide Node.js 20 (the image's bundled version)
    - Install all dependencies (`npm install`)
    - Make server files executable
    - Configure VS Code extensions
@@ -64,7 +66,7 @@ Choose either DevContainer Setup (recommended) or Local Setup below.
 
 **Prerequisites:**
 
-- [Node.js (version 18 or higher)](#install-nodejs)
+- [Node.js (version 20 or higher)](#install-nodejs) — this is what the dev container provides too, and every dependency in this training is satisfied at this version
 - [Git](#install-git)
 - [Visual Studio Code](#install-visual-studio-code)
 - A terminal/command prompt
@@ -102,7 +104,7 @@ Choose either DevContainer Setup (recommended) or Local Setup below.
 node --version
 ```
 
-If you see a version number 18.0.0 or higher, you can skip this step.
+If you see a version number 20.0.0 or higher, you can skip this step.
 
 **Install Node.js:**
 
@@ -124,10 +126,7 @@ If you see a version number 18.0.0 or higher, you can skip this step.
 # Update package list
 sudo apt update
 
-# Install Node.js and npm
-sudo apt install nodejs npm
-
-# For the latest version, use NodeSource repository:
+# Install Node.js and npm via NodeSource (Ubuntu/Debian's own repos lag behind)
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt-get install -y nodejs
 ```
@@ -149,7 +148,7 @@ node --version
 npm --version
 ```
 
-You should see Node.js version 18+ and npm version 8+.
+You should see Node.js version 20+ and npm version 10+.
 
 ### Install Git
 
@@ -236,21 +235,21 @@ Press `Ctrl+C` to stop the server.
 
 ### DevContainer Users:
 
-✅ Docker container with Node.js 20 ready  
-✅ All dependencies pre-installed  
-✅ VS Code extensions configured automatically  
-✅ Port forwarding set up (3000, 6274, 6277)  
-✅ Server files executable  
+✅ Docker container with Node.js 20 ready
+✅ All dependencies pre-installed
+✅ VS Code extensions configured automatically
+✅ Port forwarding set up (3000, 6274, 6277)
+✅ Server files executable
 ✅ Both stdio and HTTP servers running successfully
 
 ### Local Setup Users:
 
-✅ Node.js 18+ installed and working  
-✅ Git installed and working  
-✅ VS Code installed with recommended extensions  
-✅ Training repository cloned  
-✅ Dependencies installed  
-✅ Server files made executable (macOS/Linux)  
+✅ Node.js 20+ installed and working
+✅ Git installed and working
+✅ VS Code installed with recommended extensions
+✅ Training repository cloned
+✅ Dependencies installed
+✅ Server files made executable (macOS/Linux)
 ✅ Both stdio and HTTP servers running successfully
 
 ## Troubleshooting
@@ -264,7 +263,7 @@ If you have an older version of Node.js:
 **Install nvm (macOS/Linux):**
 
 ```bash
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.0/install.sh | bash
 # Restart terminal, then:
 nvm install 20
 nvm use 20
@@ -312,7 +311,7 @@ If commands like `npm` or `node` are not found:
 
 **For Local Setup users:**
 
-1. **Verify your Node.js version**: `node --version` (should be 18+)
+1. **Verify your Node.js version**: `node --version` (should be 20+)
 2. **Try deleting `node_modules` and reinstalling**:
    ```bash
    rm -rf node_modules package-lock.json

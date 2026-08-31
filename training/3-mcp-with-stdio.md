@@ -24,6 +24,8 @@ You need to build a working MCP server that can be discovered and used by MCP cl
 
 **Model Context Protocol (MCP)** uses JSON-RPC messages to enable communication between clients and servers. Here are the key message exchanges for tools:
 
+> The examples below leave out each request's `_meta` envelope (protocol version, client info, client capabilities) to keep the shape of the message easy to read. Every real request carries it, and the SDK and the clients you'll use (VS Code, MCP Inspector) fill it in for you automatically, you'll only need to think about it directly if you ever hand-craft a raw HTTP request yourself, which Step 5 covers.
+
 **1. Listing available tools:**
 
 ```
@@ -32,6 +34,7 @@ Server → Client: {
   "jsonrpc": "2.0",
   "id": 1,
   "result": {
+    "resultType": "complete",
     "tools": [
       {
         "name": "slugify",
@@ -64,10 +67,15 @@ Client → Server: {
 }
 Server → Client: {
   "jsonrpc":"2.0",
-  "result":{"content":[{"type":"text","text":"hello-world"}]},
+  "result":{
+    "resultType":"complete",
+    "content":[{"type":"text","text":"hello-world"}]
+  },
   "id":2
 }
 ```
+
+Every result carries a `resultType` field. `"complete"` means the tool finished and here's the answer. You'll meet the other value, `"input_required"`, in Step 9 when a tool needs to pause and ask the user something mid-call.
 
 This standardized protocol allows any MCP client to discover and use your tools.
 
@@ -93,29 +101,31 @@ Every program has three standard streams:
 
 ### McpServer: The MCP SDK
 
-The **MCP SDK** provides the `McpServer` class that handles the JSON-RPC protocol for you. Here's how it works:
+The **MCP SDK** provides the `McpServer` class that handles the JSON-RPC protocol for you, and a `serveStdio` helper that owns the stdio transport end to end. Here's how it works:
 
-1. **Create a server instance** with metadata (name, version)
-2. **Register capabilities** (tools, resources, prompts)
-3. **Connect to a transport** (stdio, HTTP, etc.)
-4. **Handle incoming requests** automatically
+1. **Write a factory function** that creates and configures an `McpServer` (name, version, registered tools)
+2. **Hand that factory to `serveStdio`**, which builds a fresh server instance per connection and wires it to stdin/stdout
 
 ```typescript
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { McpServer } from "@modelcontextprotocol/server";
+import { serveStdio } from "@modelcontextprotocol/server/stdio";
 
-const server = new McpServer({
-  name: "demo-server",
-  version: "1.0.0",
-});
+function createServer(): McpServer {
+  const server = new McpServer({
+    name: "demo-server",
+    version: "1.0.0",
+  });
 
-// Register tools here...
+  // Register tools here...
 
-const transport = new StdioServerTransport();
-await server.connect(transport);
+  return server;
+}
+
+void serveStdio(createServer);
+console.error("Demo MCP server running on stdio");
 ```
 
-The `StdioServerTransport` handles reading JSON-RPC messages from stdin and writing responses to stdout, so you don't have to deal with the low-level protocol details.
+`serveStdio` reads JSON-RPC messages from stdin and writes responses to stdout, so you don't have to deal with the low-level protocol details.
 
 ### Tool Registration Pattern
 
@@ -127,9 +137,9 @@ server.registerTool(
   {
     title: "Human Title",
     description: "What this tool does",
-    inputSchema: {
+    inputSchema: z.object({
       // Parameter definitions go here
-    },
+    }),
   },
   async (parameters) => {
     // Tool implementation
@@ -144,23 +154,16 @@ When clients request the tools list, the server automatically converts your regi
 
 ### Schema Validation with Zod
 
-**[Zod](https://zod.dev/)** is perfect for defining the `inputSchema` because it provides both validation and automatic schema generation:
+**[Zod](https://zod.dev/)** is perfect for defining the `inputSchema` because it provides both validation and automatic schema generation. `inputSchema` takes a single Zod object schema, built with `z.object({...})`:
 
 ```typescript
-import { z } from "zod";
+import * as z from "zod/v4";
 
 // Define a Zod schema
-const userInfoSchema = {
+const userInfoSchema = z.object({
   name: z.string().describe("The user's full name"),
   age: z.number().min(18).describe("User's age (must be 18 or older)"),
-};
-
-// McpServer can call methods like this to get JSON Schema:
-console.log(z.toJSONSchema(userInfoSchema.name));
-// Output: {
-//   "type": "string",
-//   "description": "The user's full name"
-// }
+});
 
 server.registerTool(
   "create-user",
@@ -178,13 +181,11 @@ server.registerTool(
 );
 ```
 
-💡 **How it works**: The MCP SDK calls methods like `.schema()` on your Zod objects to generate the JSON Schema format that MCP clients expect. When you define `z.string().describe("...")`, calling `.schema()` returns the corresponding JSON Schema object with `"type": "string", "description": "..."`.
-
 💡 **Why Zod is perfect for MCP**:
 
-1. **Automatic conversion**: Zod provides `.schema()` method to generate JSON Schema
-2. **Runtime validation**: Incoming parameters are validated against your schema
-3. **Type safety**: TypeScript gets proper types from your schema
+1. **Automatic conversion**: the SDK derives the JSON Schema the client sees directly from your Zod schema
+2. **Runtime validation**: incoming parameters are validated against your schema before your handler ever runs, and a bad call gets rejected with a clear error message
+3. **Type safety**: TypeScript infers your handler's argument types straight from the schema
 
 ## Technical Requirements
 
@@ -264,7 +265,7 @@ Here's the complete implementation:
 **Install the required dependencies**:
 
 ```bash
-npm install @modelcontextprotocol/sdk zod
+npm install @modelcontextprotocol/server zod
 ```
 
 ### 1. Update MCP Server (`src/mcp-server.ts`)
@@ -272,10 +273,10 @@ npm install @modelcontextprotocol/sdk zod
 Transform the skeleton into a working MCP server with tool registration:
 
 ```diff
--//import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
--//import { z } from "zod";
-+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-+import { z } from "zod";
+-//import { McpServer } from "@modelcontextprotocol/server";
+-//import * as z from "zod/v4";
++import { McpServer } from "@modelcontextprotocol/server";
++import * as z from "zod/v4";
 
 function createSlug(text: string): string {
   const slug = text
@@ -313,9 +314,9 @@ function createSlug(text: string): string {
 +    {
 +      title: "Slugify",
 +      description: "Convert text to a URL-friendly slug",
-+      inputSchema: {
++      inputSchema: z.object({
 +        text: z.string().describe("The text to convert into a URL-friendly slug")
-+      }
++      })
 +    },
 +    async ({ text }) => {
 +      const slug = createSlug(text);
@@ -337,32 +338,25 @@ function createSlug(text: string): string {
 3. **Line 16**: Remove "TODO:" from comment and implement server creation
 4. **Lines 16-19**: Create new `McpServer` instance with server metadata (name and version)
 5. **Line 21**: Remove "TODO:" from comment and implement tool registration
-6. **Lines 21-35**: Register the "slugify" tool with Zod schema validation and implementation
+6. **Lines 21-35**: Register the "slugify" tool with a `z.object({...})` schema and implementation
 7. **Line 37**: Remove "TODO:" and implement server return instead of commented placeholder
 
 📁 **Reference Implementation**: [training/3-mcp-with-stdio/src/mcp-server.ts](./3-mcp-with-stdio/src/mcp-server.ts#L1-L2,L15,L16-L19,L21-L35,L37)
 
 ### 2. Update Stdio Server (`src/stdio-server.ts`)
 
-Connect the MCP server to stdio transport for communication:
+Serve the MCP server over stdio:
 
 ```diff
 #!/usr/bin/env -S node --import ./loader.mjs
--//import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+-//import { serveStdio } from "@modelcontextprotocol/server/stdio";
++import { serveStdio } from "@modelcontextprotocol/server/stdio";
 import {createMcpServer} from "./mcp-server.js";
 
 try {
-  // Create stdio transport
+  // Serve the factory over stdio and log once it's up
 -
-+  const transport = new StdioServerTransport();
-
-  // Connect server to transport
--
-+  await createMcpServer().connect(transport);
-
-  // Log to stderr so it doesn't interfere with MCP protocol
--
++  void serveStdio(createMcpServer);
 +  console.error("Demo MCP server running on stdio");
 +
 } catch (error) {
@@ -373,12 +367,12 @@ try {
 
 **Key Changes:**
 
-1. **Line 2**: Uncomment `StdioServerTransport` import to enable stdio communication
-2. **Line 7**: Replace empty line with stdio transport creation
-3. **Line 10**: Replace empty line with server connection to transport
-4. **Line 13**: Replace empty line with stderr logging to avoid interfering with MCP protocol
+1. **Line 2**: Uncomment the `serveStdio` import to enable stdio communication
+2. **Lines 7-9**: Replace the empty block with a call to `serveStdio(createMcpServer)`, followed by a stderr log so the process doesn't interfere with the MCP protocol
 
-📁 **Reference Implementation**: [training/3-mcp-with-stdio/src/stdio-server.ts](./3-mcp-with-stdio/src/stdio-server.ts#L2,L7,L10,L13)
+`serveStdio` owns the stdio transport for you: it reads requests on stdin, writes responses to stdout, and calls your factory to build a server instance for the connection. There's no separate transport object to create and connect by hand.
+
+📁 **Reference Implementation**: [training/3-mcp-with-stdio/src/stdio-server.ts](./3-mcp-with-stdio/src/stdio-server.ts#L2,L7-L9)
 
 ### 3. Configure VS Code MCP Integration (`.vscode/mcp.json`)
 

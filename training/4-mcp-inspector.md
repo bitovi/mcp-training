@@ -52,27 +52,38 @@ When you run the inspector, it will:
 
 ### Connecting to Local stdio Servers
 
-For local development, you can directly specify your server script:
+Inspector negotiates the **legacy** protocol era by default, which is a deliberate choice for a debugging tool: probing can stall against a server that never answers, and it clutters the transcript you came to read. Since your server speaks `2026-07-28`, ask for that era explicitly, otherwise the messages you inspect won't look like the ones this step describes.
 
-```bash
-npx @modelcontextprotocol/inspector ./src/stdio-server.ts
+The protocol era is a per-server setting, and a server named directly on the command line has nowhere to carry settings. Give it a config file instead. Create `inspector.json` in your project root:
+
+```json
+{
+  "mcpServers": {
+    "demo-server": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["--import", "./loader.mjs", "src/stdio-server.ts"],
+      "protocolEra": "modern"
+    }
+  }
+}
 ```
 
-This automatically:
+Then launch against that file:
 
-- Sets transport type to "stdio"
-- Launches your server as a subprocess
-- Connects the inspector to it
+```bash
+npx @modelcontextprotocol/inspector --config inspector.json
+```
+
+Connect to `demo-server` from the **Servers** tab. The server card shows `MCP 2026-07-28`, and **Connection Info** confirms **Era: Modern**.
+
+💡 `protocolEra` accepts `legacy`, `auto`, or `modern`. There is no command-line flag or environment variable for it, so a config or catalog file is the only way to set it.
 
 ### Connecting to Remote MCP Services
 
 For remote services like Atlassian's MCP, you need to:
 
-1. **Choose the correct transport type**: Different services use different transports
-
-   - **SSE (Server-Sent Events)**: Used by Atlassian's MCP service
-   - **Streamable HTTP**: Used by some other services
-   - **HTTP**: For basic HTTP-only services
+1. **Choose the correct transport type**: nearly every production remote server speaks Streamable HTTP
 
 2. **Configure authentication**: Most remote services require OAuth 2.1
 
@@ -81,27 +92,26 @@ For remote services like Atlassian's MCP, you need to:
    - Automatic token management
 
 3. **Use the correct endpoint URL**: Service discovery is important
-   - Atlassian: `https://mcp.atlassian.com/v1/sse`
+   - Atlassian: `https://mcp.atlassian.com/v1/mcp`
    - GitHub: `https://api.githubcopilot.com/mcp/`
 
 ### Understanding the Inspector Interface
 
-The MCP Inspector interface has several key sections:
+The MCP Inspector interface has two groups of panels.
 
-**Sidebar (Left)**:
+**Tab bar (top)** — one tab per capability your server declared:
 
-- **Transport Type**: stdio, SSE, Streamable HTTP
-- **Connection URL/Command**: Server endpoint or executable path
-- **Authentication**: OAuth configuration and custom headers
-- **Configuration**: Inspector settings and proxy tokens
+- **Servers**: Your server list, connection state, and per-server settings
+- **Tools**: List tools, fill in arguments through a generated form, and call them
+- **Prompts**: List prompt templates and render them with arguments
+- **Resources**: Browse and read resources by URI
 
-**Main Panel (Right)**:
+**Monitoring column (right)** — these sit in their own column rather than the tab bar, so you can watch traffic while working in Tools:
 
-- **Tools**: List and test available tools
-- **Resources**: Browse server resources
-- **Prompts**: Explore prompt templates
-- **Logs**: View server notifications and errors
-- **Raw Protocol**: JSON-RPC message inspector
+- **Protocol**: The JSON-RPC transcript, each request paired with its response
+- **Console**: Your server process's stderr, which is where its own logging goes
+
+A server with a `logging` capability, task support, or an HTTP transport also gets Logs, Tasks, or Network panels. The connected server's card shows its transport and negotiated protocol version, and **Connection Info** breaks out the protocol, era, and both sides' capabilities.
 
 ### Reading JSON-RPC Messages
 
@@ -128,6 +138,7 @@ MCP uses JSON-RPC 2.0 over various transports. Key message types:
   "jsonrpc": "2.0",
   "id": 1,
   "result": {
+    "resultType": "complete",
     "content": [{ "type": "text", "text": "hello-world" }]
   }
 }
@@ -140,6 +151,7 @@ MCP uses JSON-RPC 2.0 over various transports. Key message types:
   "jsonrpc": "2.0",
   "id": 1,
   "result": {
+    "resultType": "complete",
     "message": [{ "type": "text", "text": "hello-world" }]
   }
 }
@@ -151,15 +163,15 @@ This response looks successful but the client doesn't display any content becaus
 
 Atlassian provides a production MCP service through their Rovo platform. Here's how to connect:
 
-1. **Transport Type**: Select "SSE (Server-Sent Events)"
-2. **URL**: `https://mcp.atlassian.com/v1/sse`
+1. **Transport Type**: Select "Streamable HTTP"
+2. **URL**: `https://mcp.atlassian.com/v1/mcp`
 3. **Authentication**: Use "Quick OAuth Flow"
 4. **OAuth Scopes**: The service will automatically determine required scopes
 
 The OAuth flow will:
 
 - Discover OAuth metadata from the server
-- Register a client dynamically
+- Identify the Inspector to Atlassian's authorization server using a Client ID Metadata Document
 - Redirect you to Atlassian for authorization
 - Exchange the authorization code for access tokens
 - Store tokens for subsequent requests
@@ -212,9 +224,9 @@ server.registerTool(
   {
     title: "Slugify",
     description: "Convert text to a URL-friendly slug",
-    inputSchema: {
+    inputSchema: z.object({
       text: z.string().describe("The text to convert into a URL-friendly slug")
-    }
+    })
   },
   // @ts-ignore
   async ({ text }) => {
@@ -226,8 +238,6 @@ server.registerTool(
     };
   }
 );
-  );
-}
 ```
 
 This broken code intentionally uses `message` instead of the correct `content` field. The correct format should be:
@@ -243,10 +253,10 @@ return {
 
 ✏️ **Test local server debugging**:
 
-1. **Run the inspector** with your local server:
+1. **Run the inspector** with your local server, using the config file so the connection is on the modern era:
 
    ```bash
-   npx @modelcontextprotocol/inspector ./src/stdio-server.ts
+   npx @modelcontextprotocol/inspector --config inspector.json
    ```
 
 2. **Verify normal operation**: Test the slugify tool and confirm it returns results
@@ -266,7 +276,7 @@ Here's the complete solution for debugging with MCP Inspector:
 **Connect to your local server**:
 
 ```bash
-npx @modelcontextprotocol/inspector ./src/stdio-server.ts
+npx @modelcontextprotocol/inspector --config inspector.json
 ```
 
 This will automatically:
@@ -292,7 +302,7 @@ Replace your current tool implementation with the broken version provided in the
 1. Restart the inspector (Ctrl+C and run again)
 2. Try calling the slugify tool again
 3. Notice you get a "Success" status but no visible content in the response
-4. Check the "History" panel to see the JSON-RPC response contains `message` instead of `content`
+4. Check the **Protocol** panel to see the JSON-RPC response contains `message` instead of `content`
 
 **Fix the bug**:
 
@@ -302,21 +312,20 @@ server.registerTool(
   "slugify",
   {
     title: "Slugify",
-      description: "Convert text to a URL-friendly slug",
-      inputSchema: {
-        text: z.string().describe("The text to convert into a URL-friendly slug")
-      }
-    },
-    async ({ text }) => {
-      const slug = createSlug(text);
+    description: "Convert text to a URL-friendly slug",
+    inputSchema: z.object({
+      text: z.string().describe("The text to convert into a URL-friendly slug")
+    })
+  },
+  async ({ text }) => {
+    const slug = createSlug(text);
 
-      // FIXED: Using correct 'content' field
-      return {
-        content: [{ type: "text", text: slug }]
-      };
-    }
-  );
-}
+    // FIXED: Using correct 'content' field
+    return {
+      content: [{ type: "text", text: slug }]
+    };
+  }
+);
 ```
 
 ## Next Steps

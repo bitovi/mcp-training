@@ -1,5 +1,5 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
+import { McpServer } from "@modelcontextprotocol/server";
+import * as z from "zod/v4";
 
 function createSlug(text: string): string {
   const slug = text
@@ -9,16 +9,15 @@ function createSlug(text: string): string {
     .trim()
     .replace(/[\s_-]+/g, "-")
     .replace(/^-+|-+$/g, "");
-  
+
   return slug;
 }
 
 // Factory function to create a new MCP server instance
 export function createMcpServer(): McpServer {
-  // Create and configure the MCP server
-  const server = new McpServer({ 
-    name: "demo-server", 
-    version: "1.0.0" 
+  const server = new McpServer({
+    name: "demo-server",
+    version: "1.0.0"
   });
 
   // Register tools
@@ -27,15 +26,15 @@ export function createMcpServer(): McpServer {
     {
       title: "Slugify",
       description: "Convert text to a URL-friendly slug",
-      inputSchema: {
+      inputSchema: z.object({
         text: z.string().describe("The text to convert into a URL-friendly slug")
-      }
+      })
     },
     async ({ text }) => {
       const slug = createSlug(text);
-      
-      return { 
-        content: [{ type: "text", text: slug }] 
+
+      return {
+        content: [{ type: "text", text: slug }]
       };
     }
   );

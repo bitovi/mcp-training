@@ -51,12 +51,12 @@ z.object({
 **MCP Input Schema Pattern:**
 
 ```typescript
-inputSchema: {
+inputSchema: z.object({
   seconds: z.number()
     .int("Must be a whole number")
     .positive("Must be greater than 0")
-    .describe("Number of seconds to count down from");
-}
+    .describe("Number of seconds to count down from")
+})
 ```
 
 **Key Zod Methods:**
@@ -73,7 +73,7 @@ inputSchema: {
 message: z.string().default("🚀 Blastoff!").optional()
 
 // TypeScript function with matching default
-async ({ seconds, message = "🚀 Blastoff!" }, extra) => {
+async ({ seconds, message = "🚀 Blastoff!" }, ctx) => {
 ```
 
 ### Runtime/Business Rule Validation
@@ -81,7 +81,7 @@ async ({ seconds, message = "🚀 Blastoff!" }, extra) => {
 **Purpose**: Enforce business logic that Zod schemas cannot express:
 
 ```typescript
-async ({ seconds }, extra) => {
+async ({ seconds }, ctx) => {
   // Schema validation already passed - seconds is a positive integer
 
   // Business rule validation
@@ -102,45 +102,27 @@ async ({ seconds }, extra) => {
 };
 ```
 
-### MCP Error Types and Handling
+### How Tool Errors Reach the Client
 
-The **[MCP SDK](https://modelcontextprotocol.io/docs/api/server)** provides specific error types for different scenarios:
-
-**Basic Errors (what we'll use):**
+A **tool error** is a normal, successful response that carries `isError: true`, so the model reads it and can recover, for example by retrying with different arguments. Throwing a plain `Error` from your handler is the simplest way to produce one:
 
 ```typescript
 // Simple error with user-friendly message
 throw new Error("Countdown duration must be 15 seconds or less");
 ```
 
-**Advanced MCP Error Types:**
+The SDK catches whatever your handler throws and converts it into an `isError: true` result automatically, using the exception's message as the content text. You can also return that shape explicitly when you want more control over the content:
 
 ```typescript
-import {
-  InvalidTokenError,
-  AuthenticationError,
-  AuthorizationError,
-  ValidationError,
-} from "@modelcontextprotocol/sdk/types.js";
-
-// Authentication issues
-throw new InvalidTokenError("Token has expired");
-throw new AuthenticationError("Invalid credentials");
-
-// Authorization issues
-throw new AuthorizationError("Insufficient permissions for this operation");
-
-// Validation issues
-throw new ValidationError("Invalid input parameters");
+if (seconds > 15) {
+  return {
+    content: [{ type: "text", text: "Countdown duration must be 15 seconds or less" }],
+    isError: true,
+  };
+}
 ```
 
-**When to use specific error types:**
-
-- **`Error`**: General business rule violations, user-facing messages
-- **`ValidationError`**: Schema or input validation failures
-- **`AuthenticationError`**: Authentication failures (invalid tokens, expired sessions)
-- **`AuthorizationError`**: Permission denied, insufficient scopes
-- **`InvalidTokenError`**: Specific token validation issues
+Both approaches produce the same result on the wire. Throwing is shorter; returning explicitly lets you build up richer content before sending it.
 
 **Error Handling Best Practices:**
 
@@ -177,7 +159,7 @@ if (seconds > maxAllowed) {
 **Complex validation with Zod:**
 
 ```typescript
-inputSchema: {
+inputSchema: z.object({
   // Required field with constraints
   seconds: z.number()
     .int("Must be a whole number")
@@ -199,7 +181,7 @@ inputSchema: {
     .describe("User identifier")
     // Fields are required by default in Zod objects
     // .required() only needed when making optional fields required again
-}
+})
 ```
 
 **When to use Zod vs Runtime validation:**
@@ -329,8 +311,9 @@ The main transformation from Step 6 (streaming) to Step 8 (validation) involves 
     {
       title: "Countdown Timer",
       description: "Counts down from a number with real-time progress updates",
-      inputSchema: {
+-      inputSchema: {
 -        seconds: z.number().describe("Number of seconds to count down from")
++      inputSchema: z.object({
 +        seconds: z.number()
 +          .int("Must be a whole number")
 +          .positive("Must be greater than 0")
@@ -340,32 +323,28 @@ The main transformation from Step 6 (streaming) to Step 8 (validation) involves 
 +          .default("🚀 Blastoff!")
 +          .describe("Custom message to display when countdown completes")
 +          .optional()
-      }
+-      }
++      })
     },
--    async ({ seconds }, extra) => {
-+    async ({ seconds, message = "🚀 Blastoff!" }, extra) => {
+-    async ({ seconds }, ctx) => {
++    async ({ seconds, message = "🚀 Blastoff!" }, ctx) => {
 +      // Business rule validation: cap at 15 seconds for demo
 +      if (seconds > 15) {
 +        throw new Error(`Countdown duration must be 15 seconds or less for this demo. You entered ${seconds} seconds.`);
 +      }
 +
-      // Stream countdown progress with dual notification patterns
++      const progressToken = ctx.mcpReq._meta?.progressToken;
++
+      // Stream countdown progress
       for (let i = seconds; i > 0; i--) {
-        // 1. Logging notification (for MCP Inspector debugging)
-        await extra.sendNotification({
-          method: "notifications/message",
-          params: {
-            level: "info",
-            data: `Countdown: ${i} seconds remaining`
-          }
-        });
-
-        // 2. Progress notification (when VS Code provides progressToken)
-        if (extra._meta?.progressToken) {
-          await extra.sendNotification({
+-        if (extra._meta?.progressToken) {
+-          await extra.sendNotification({
++        if (progressToken !== undefined) {
++          await ctx.mcpReq.notify({
             method: "notifications/progress",
             params: {
-              progressToken: extra._meta.progressToken,
+-              progressToken: extra._meta.progressToken,
++              progressToken,
               progress: seconds - i + 1,  // Current step (1, 2, 3...)
               total: seconds,              // Total steps
               message: `${i} seconds remaining!`

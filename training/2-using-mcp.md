@@ -22,13 +22,13 @@ This hands-on experience will show you how agents discover tools, handle authent
 
 ## What you need to know
 
-📝 **Reference**: [MCP Specification](https://spec.modelcontextprotocol.io/)
+📝 **Reference**: [MCP Specification](https://modelcontextprotocol.io/specification/2026-07-28/changelog)
 
 ### MCP Client Configuration in VS Code
 
 VS Code can act as an MCP client through configuration files. You'll create a `.vscode/mcp.json` file that tells VS Code how to connect to MCP servers:
 
-📝 **Reference**: [VS Code MCP Extension Documentation](https://github.com/modelcontextprotocol/vscode-mcp)
+📝 **Reference**: [VS Code MCP documentation](https://code.visualstudio.com/docs/agent-customization/mcp-servers)
 
 ```json
 {
@@ -62,11 +62,14 @@ GitHub uses OAuth 2.1 with PKCE (Proof Key for Code Exchange) for secure authent
 
 - [PKCE Specification (RFC 7636)](https://tools.ietf.org/html/rfc7636)
 - [GitHub OAuth Documentation](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps)
+- [Client ID Metadata Documents](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization)
 
-**Why PKCE for VS Code?**
-Unlike traditional OAuth where applications are pre-registered with fixed redirect URIs, VS Code uses dynamic client registration. Since VS Code isn't hosted at a specific URL and runs locally on each user's machine, it can't safely store a client secret. PKCE solves this by using cryptographic proof instead of a shared secret.
+**How VS Code identifies itself:**
+VS Code hosts a small JSON document describing itself (its name, redirect URIs, and so on) at a fixed HTTPS URL, and that URL doubles as its client ID. This is called a Client ID Metadata Document, or CIMD. Every VS Code instance on every machine points at the same URL, so GitHub's authorization server recognizes it as "VS Code" without a separate registration step per install.
 
-💡 **Note**: We'll dive deeper into OAuth 2.1 and PKCE implementation patterns in later steps when building our own authenticated MCP servers.
+Because VS Code runs locally on each user's machine and can't safely store a client secret, it proves its identity for each individual authorization request using PKCE: it generates a fresh secret value, sends a hash of it in the authorization request, and presents the original value when exchanging the authorization code for a token. Only whoever started that specific flow can complete it.
+
+💡 **Note**: We'll dive deeper into OAuth 2.1, PKCE, and CIMD in later steps when building our own authenticated MCP servers.
 
 ### GitHub MCP Server Capabilities
 

@@ -2,6 +2,8 @@
 
 This comprehensive training teaches you how to build production-ready MCP (Model Context Protocol) servers using Node.js and TypeScript. You'll progress from basic concepts to advanced features like authentication, streaming, and validation.
 
+> **Spec version:** this training targets **[MCP Specification 2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28/changelog)**, the current stable release.
+
 👉 Bitovi can help you integrate this into your own SDLC workflow: [AI for Software Teams](https://www.bitovi.com/ai-for-software-teams)
 
 ## What You'll Learn
@@ -35,17 +37,17 @@ Contact Bitovi to accelerate your AI initiatives with expert guidance.
 Choose between two setup options: **Dev Container** (one-click setup with Docker) or **Manual Installation** (full control). Both provide everything needed for the training.
 
 - **Option A**: Dev Container with pre-configured Node.js 20, VS Code extensions, and port forwarding
-- **Option B**: Manual installation of Node.js 18+, Git, VS Code, and dependencies
+- **Option B**: Manual installation of Node.js 20+, Git, VS Code, and dependencies
 - Clone the training repository and verify both stdio and HTTP servers work
 - Ready to start building MCP servers!
 
 ### [Step 1: What is MCP?](training/1-what-is-mcp.md)
 **Understanding the Model Context Protocol**
 
-Learn the fundamentals of MCP, how it enables AI agents to interact with external services, and understand the core capabilities (tools, resources, prompts, sampling hooks).
+Learn the fundamentals of MCP, how it enables AI agents to interact with external services, and understand the core capabilities (tools, resources, prompts, elicitation).
 
 - MCP protocol overview and architecture
-- Core capabilities: tools, resources, prompts, sampling hooks
+- Core capabilities: tools, resources, prompts, elicitation
 - Transport methods: stdio vs Streamable HTTP
 - How agents discover and use MCP services
 - Key benefits and use cases
@@ -90,35 +92,33 @@ Master the MCP Inspector for testing, debugging, and exploring MCP servers. Lear
 Transform your stdio server into a production-ready HTTP service using Streamable HTTP transport. Enable multiple concurrent clients and web deployment capabilities.
 
 - Convert stdio server to Streamable HTTP transport
-- Implement POST, GET, and DELETE endpoints
-- Add session management with proper headers
-- Configure CORS and security measures
+- Implement the single `POST /mcp` endpoint
+- Understand why the stateless model scales behind an ordinary load balancer
+- Configure DNS-rebinding protection and security measures
 - Deploy HTTP servers for production use
 - Handle multiple concurrent client connections
 
 ### [Step 6: Streaming MCP](training/6-streaming-mcp.md)
-**Real-time Progress and Notifications**
+**Real-time Progress Updates**
 
-Add streaming capabilities to provide real-time progress updates and notifications. Build a countdown tool that demonstrates dual notification patterns for different client types.
+Add streaming capabilities to provide real-time progress updates. Build a countdown tool that streams progress on the same response stream as the call itself.
 
-- Implement MCP streaming notifications
-- Create progress notifications for VS Code integration
-- Build logging notifications for debugging
+- Implement MCP progress notifications
+- Read a client's `progressToken` and report progress against it
 - Handle long-running operations with user feedback
 - Support both MCP Inspector and VS Code clients
-- Manage Server-Sent Events (SSE) streams
+- Understand how progress notifications ride a request's own response stream
 
-### [Step 7: Session Management](training/7-reconnect-mcp-sessions.md)
-**Stateful Transports and Multiple Clients**
+### [Step 7: Managing State Without Sessions](training/7-managing-state.md)
+**Multi-Step Workflows on a Stateless Server**
 
-Implement proper session management to handle multiple concurrent clients with isolated state. Learn session lifecycles, reconnection patterns, and resource cleanup.
+Build tools that span multiple calls without relying on the server remembering which client it's talking to. Learn the explicit handle pattern: mint an id, hand it back, accept it as an ordinary argument later.
 
-- Implement per-session transport isolation
-- Handle session initialization and termination
-- Manage multiple concurrent client connections
-- Add session cleanup and resource management
-- Support client reconnection scenarios
-- Validate session IDs and handle errors
+- Mint a server-side handle (id) when a tool creates state worth keeping
+- Store that state in a plain server-side lookup, keyed by the handle
+- Accept the handle back as an ordinary tool argument on later calls
+- Handle an unknown or expired handle as a normal tool error
+- Verify multiple concurrent clients stay fully independent
 
 ### [Step 8: Validation Patterns](training/8-validating-mcp.md)
 **Schema and Business Rule Validation**
@@ -139,9 +139,9 @@ Secure your MCP server with OAuth 2.1 authentication using PKCE for enhanced sec
 
 - Implement OAuth 2.1 + PKCE authentication
 - Create OAuth discovery endpoints
-- Handle dynamic client registration
-- Implement authorization and token exchange flows
-- Secure MCP endpoints with Bearer tokens
+- Identify clients via Client ID Metadata Documents (CIMD)
+- Implement authorization and token exchange flows, including resource-bound tokens
+- Secure MCP endpoints with Bearer tokens verified on every request
 - Support VS Code and other MCP clients
 
 ## Project Structure
@@ -157,14 +157,15 @@ mcp-training/
 │   ├── 4-mcp-inspector.md
 │   ├── 5-mcp-services.md
 │   ├── 6-streaming-mcp.md
-│   ├── 7-reconnect-mcp-sessions.md
+│   ├── 7-managing-state.md
 │   ├── 8-validating-mcp.md
-│   └── 9-authorizing-mcp.md
+│   ├── 9-authorizing-mcp.md
+│   └── final/              # Complete reference implementation
 ├── src/                   # Your working implementation
 │   ├── mcp-server.ts      # Core MCP server configuration
 │   ├── stdio-server.ts    # Stdio transport implementation
-│   └── http-server.ts     # HTTP transport implementation
-├── final/                 # Complete reference implementations
+│   ├── http-server.ts     # HTTP transport implementation
+│   └── auth/              # OAuth 2.1 + PKCE authorization server (Step 9)
 └── package.json          # Dependencies and scripts
 ```
 
@@ -180,7 +181,7 @@ Choose your preferred setup method in **Step 0**:
 
 ### Manual Setup
 1. **Follow Step 0** for detailed manual installation instructions
-2. **Install Node.js 18+, Git, and VS Code** with required extensions
+2. **Install Node.js 20+, Git, and VS Code** with required extensions
 3. **Clone and configure** the project manually
 
 ### Then for both approaches:

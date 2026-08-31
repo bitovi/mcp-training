@@ -2,165 +2,92 @@
 
 ## Introduction
 
-By the end of this step, you will understand how to implement streaming capabilities in your MCP tools to provide real-time progress updates and notifications to clients. You'll learn about different types of events that can be transmitted, how clients receive these events, and when streaming is most beneficial.
+By the end of this step, you will understand how to implement streaming capabilities in your MCP tools to provide real-time progress updates to clients. You'll learn how progress updates work, how clients receive them, and when streaming is most beneficial.
 
-In step 5, we built an HTTP MCP server that handles request-response cycles. While this works well for quick operations, many real-world tools perform long-running tasks that benefit from progress updates, intermediate results, or real-time notifications. MCP's streaming capabilities allow tools to send multiple messages during execution, creating a more responsive user experience.
+In step 5, we built an HTTP MCP server that handles request-response cycles. While this works well for quick operations, many real-world tools perform long-running tasks that benefit from progress updates. MCP's streaming capabilities let a tool send progress updates while it works, creating a more responsive user experience.
 
 ## Problem
 
 Your current MCP tools operate in a simple request-response pattern:
 
 - **No progress feedback**: Users don't know if long operations are working
-- **Poor user experience**: No intermediate results or status updates
+- **Poor user experience**: No intermediate status updates
 - **Timeout risks**: Long operations may hit client timeout limits
-- **No real-time data**: Can't push live updates or notifications
 
-Your task is to implement a streaming countdown tool that sends progress notifications as it executes, demonstrating how to provide real-time feedback to MCP clients.
+Your task is to implement a streaming countdown tool that sends progress updates as it executes, demonstrating how to provide real-time feedback to MCP clients.
 
 ## What you need to know
 
 ### MCP Streaming Concepts
 
-**Notification Types:**
-MCP tools can send notifications during execution to provide real-time updates to clients. These notifications are sent through the tool execution context and transmitted via the SSE (Server-Sent Events) stream.
+**How it works:**
+When a client wants progress updates for a call, it includes a `progressToken` in that request. While your tool handler runs, it can send `notifications/progress` messages carrying that same token. Those notifications travel on the same response stream as the call itself, arriving before the final result.
 
 **When to use streaming:**
 
 - **Long-running operations**: Tasks that take more than a few seconds
 - **Progress tracking**: Operations with measurable progress (file uploads, data processing)
-- **Real-time data**: Live feeds, monitoring, or continuous updates
 - **User feedback**: Keeping users informed during execution
-- **Content streaming**: Sending intermediate results or partial content
-- **Multi-client compatibility**: Adapting notifications based on client capabilities
 
-### Tool Context Notifications
+### Tool Context: `ctx.mcpReq`
 
-The MCP SDK provides a context object (`extra`) in tool handlers that includes a `sendNotification` method:
+Every tool handler receives a context object as its second argument. The request-scoped helpers, including progress reporting, live on `ctx.mcpReq`:
 
 ```typescript
-async ({ inputParams }, extra) => {
-  // Send a notification to the client
-  await extra.sendNotification({
-    method: "notifications/message",
-    params: {
-      level: "info",
-      data: "Processing step 1 of 3...",
-    },
-  });
+async ({ inputParams }, ctx) => {
+  const progressToken = ctx.mcpReq._meta?.progressToken;
+
+  if (progressToken !== undefined) {
+    await ctx.mcpReq.notify({
+      method: "notifications/progress",
+      params: {
+        progressToken,
+        progress: 1,
+        total: 3,
+        message: "Processing step 1 of 3...",
+      },
+    });
+  }
 
   // Continue tool execution...
   return { content: [{ type: "text", text: "Final result" }] };
 };
 ```
 
-### Notification Structure
-
-**Basic notification format:**
+### Progress Notification Structure
 
 ```typescript
-await extra.sendNotification({
-  method: "notifications/message",
-  params: {
-    level: string, // Log level ("info", "debug", "warning", "error")
-    data: any, // Message content (any JSON-serializable data)
-  },
-});
-```
-
-**Common log levels:**
-
-- **`info`**: General information and progress updates
-- **`debug`**: Detailed debugging information
-- **`warning`**: Non-fatal warnings or cautions
-- **`error`**: Error messages (for non-fatal errors)
-
-### Content Streaming (For General Clients)
-
-When a client doesn't provide a `progressToken`, you can still stream intermediate content updates using structured notification messages:
-
-```typescript
-// Content streaming notification
-await extra.sendNotification({
-  method: "notifications/message",
-  params: {
-    level: "info",
-    data: {
-      type: "content",
-      content: [
-        {
-          type: "text",
-          text: "Intermediate result or progress update...",
-        },
-      ],
-    },
-  },
-});
-```
-
-**Content streaming benefits:**
-
-- **Works with any MCP client** (not just VS Code)
-- **Provides intermediate results** during long operations
-- **Keeps users engaged** with visible progress
-- **Flexible format** - can include any content type
-
-### MCP Progress Protocol (For VS Code Integration)
-
-VS Code Copilot has built-in support for the official MCP progress protocol. When VS Code calls your MCP tool, it automatically includes a `progressToken` in the request metadata. You can send progress notifications using this token:
-
-```typescript
-// VS Code automatically includes progressToken in _meta
-export interface RequestHandlerExtra {
-  // ... other properties
-  _meta?: {
-    progressToken?: string;
-    // ... other metadata
-  };
-}
-
-// Send progress notifications
-await extra.sendNotification({
+await ctx.mcpReq.notify({
   method: "notifications/progress",
   params: {
-    progressToken: extra._meta?.progressToken,
-    progress: currentStep, // Current progress (incremental)
-    total: totalSteps, // Total steps (optional)
-    message: "Processing step 3 of 10...",
+    progressToken: string, // The token the client sent in this request
+    progress: number, // Current progress; must increase on every notification
+    total: number, // Optional: total steps, enables percentage display
+    message: string, // Optional: human-readable status
   },
 });
 ```
 
-**VS Code Progress Display:**
-
-- Shows **progress bars** in the Chat interface
-- Displays **percentage completion** when total is provided
-- Shows **real-time status messages**
-- Updates **inline with the conversation**
+A client only sends a `progressToken` if it wants progress updates for that particular call. If there's no token, skip sending notifications entirely, the client isn't listening for them.
 
 ### How Clients Receive Events
 
 **For MCP Inspector:**
 
-- Events appear in the **Notifications** panel in real-time
-- Each notification shows the event type and data payload
+- Progress updates appear in the **Notifications** panel in real-time
+- Each notification shows the current progress, total, and message
 - Notifications are timestamped for debugging
 
 **For VS Code Copilot:**
 
 - Progress notifications show as **progress bars** in the Chat interface
-- Real-time progress updates appear inline with the conversation
-- VS Code automatically handles `notifications/progress` protocol messages
-- Progress is displayed with percentage completion and status messages
+- VS Code automatically includes a `progressToken` on every tool call and renders updates inline with the conversation, complete with percentage completion
 
-**For other MCP clients:**
-
-- Events are received via the SSE stream (`GET /mcp` endpoint)
-- Clients can subscribe to specific event types
-- Events are JSON-formatted with MCP protocol structure
+Both clients read the same `notifications/progress` messages. VS Code just renders them as a progress bar instead of a log line.
 
 ### Simple Streaming Implementation
 
-Here's a countdown tool that demonstrates dual notification patterns: logging notifications (for MCP Inspector debugging) and progress notifications (for VS Code Copilot):
+Here's a countdown tool that sends a progress update once per second:
 
 ```typescript
 server.registerTool(
@@ -168,28 +95,19 @@ server.registerTool(
   {
     title: "Countdown Timer",
     description: "Counts down from a number with progress updates",
-    inputSchema: {
+    inputSchema: z.object({
       seconds: z.number().describe("Number of seconds to count down from"),
-    },
+    }),
   },
-  async ({ seconds }, extra) => {
-    // Stream countdown progress with dual notification patterns
-    for (let i = seconds; i > 0; i--) {
-      // 1. Logging notification (always - shows in MCP Inspector)
-      await extra.sendNotification({
-        method: "notifications/message",
-        params: {
-          level: "info",
-          data: `Countdown: ${i} seconds remaining`,
-        },
-      });
+  async ({ seconds }, ctx) => {
+    const progressToken = ctx.mcpReq._meta?.progressToken;
 
-      // 2. Progress notification (when VS Code provides progressToken)
-      if (extra._meta?.progressToken) {
-        await extra.sendNotification({
+    for (let i = seconds; i > 0; i--) {
+      if (progressToken !== undefined) {
+        await ctx.mcpReq.notify({
           method: "notifications/progress",
           params: {
-            progressToken: extra._meta.progressToken,
+            progressToken,
             progress: seconds - i + 1, // Current step
             total: seconds, // Total steps
             message: `${i} seconds remaining`,
@@ -227,11 +145,10 @@ server.registerTool(
 **Expected behaviors:**
 
 - Tool accepts a `seconds` parameter (number)
-- Sends progress notifications every second with remaining time
+- Sends a progress notification every second with remaining time, when the caller asked for progress
 - **Shows progress bars in VS Code Copilot Chat** with real-time updates
 - Returns final "🚀 Blastoff!" message when complete
 - Works with both MCP Inspector and your HTTP server
-- Server must declare `logging: {}` capabilities to support notifications
 
 ## How to verify your solution
 
@@ -263,8 +180,7 @@ server.registerTool(
    - Click "Call Tool"
 
 5. **Observe the streaming behavior**:
-   - Watch notifications appear in real-time in the Notifications panel
-   - Verify you see status and progress events
+   - Watch progress notifications appear in real-time in the Notifications panel
    - Confirm the final result appears after countdown completes
 
 ✏️ **Test with VS Code Copilot (Recommended)**:
@@ -314,11 +230,11 @@ server.registerTool(
 **In MCP Inspector (Notifications panel):**
 
 ```
-Notification: info - Countdown: 5 seconds remaining
-Notification: info - Countdown: 4 seconds remaining
-Notification: info - Countdown: 3 seconds remaining
-Notification: info - Countdown: 2 seconds remaining
-Notification: info - Countdown: 1 seconds remaining
+Progress: 1/5 - 5 seconds remaining
+Progress: 2/5 - 4 seconds remaining
+Progress: 3/5 - 3 seconds remaining
+Progress: 4/5 - 2 seconds remaining
+Progress: 5/5 - 1 seconds remaining
 Final result: 🚀 Blastoff!
 ```
 
@@ -330,21 +246,18 @@ Final result: 🚀 Blastoff!
 
 ⚠️ **Troubleshooting tips**:
 
-- If notifications don't appear, ensure your SSE stream is working (`GET /mcp` endpoint)
+- If notifications don't appear, confirm the client actually sent a `progressToken` on the call, no token means your tool has nothing to attach notifications to
 - Check browser console for any connection errors
-- Verify your HTTP server has proper CORS headers for SSE
 - Test with shorter countdowns first (3-5 seconds)
-- Ensure you're using `await` with `extra.sendNotification()` calls
+- Ensure you're using `await` with `ctx.mcpReq.notify()` calls
 
 ## Solution
 
 Here's the complete implementation of the streaming countdown tool:
 
-### Updated MCP Server with Streaming
-
 ### Updated MCP Server with Streaming (`src/mcp-server.ts`)
 
-Add streaming capabilities and the countdown tool to your existing MCP server:
+Add the countdown tool to your existing MCP server:
 
 ```diff
 // Factory function to create a new MCP server instance
@@ -353,13 +266,7 @@ export function createMcpServer(): McpServer {
   const server = new McpServer({
     name: "demo-server",
     version: "1.0.0"
--  });
-+  }, {
-+    capabilities: {
-+      tools: {},
-+      logging: {}
-+    }
-+  });
+  });
 
   // Register tools
   server.registerTool(
@@ -367,9 +274,9 @@ export function createMcpServer(): McpServer {
     {
       title: "Slugify",
       description: "Convert text to a URL-friendly slug",
-      inputSchema: {
+      inputSchema: z.object({
         text: z.string().describe("The text to convert into a URL-friendly slug")
-      }
+      })
     },
     async ({ text }) => {
       const slug = createSlug(text);
@@ -386,28 +293,20 @@ export function createMcpServer(): McpServer {
 +    {
 +      title: "Countdown Timer",
 +      description: "Counts down from a number with real-time progress updates",
-+      inputSchema: {
++      inputSchema: z.object({
 +        seconds: z.number().describe("Number of seconds to count down from")
-+      }
++      })
 +    },
-+    async ({ seconds }, extra) => {
-+      // Stream countdown progress with dual notification patterns
-+      for (let i = seconds; i > 0; i--) {
-+        // 1. Logging notification (for MCP Inspector debugging)
-+        await extra.sendNotification({
-+          method: "notifications/message",
-+          params: {
-+            level: "info",
-+            data: `Countdown: ${i} seconds remaining`
-+          }
-+        });
++    async ({ seconds }, ctx) => {
++      const progressToken = ctx.mcpReq._meta?.progressToken;
 +
-+        // 2. Progress notification (when VS Code provides progressToken)
-+        if (extra._meta?.progressToken) {
-+          await extra.sendNotification({
++      // Stream countdown progress
++      for (let i = seconds; i > 0; i--) {
++        if (progressToken !== undefined) {
++          await ctx.mcpReq.notify({
 +            method: "notifications/progress",
 +            params: {
-+              progressToken: extra._meta.progressToken,
++              progressToken,
 +              progress: seconds - i + 1,  // Current step (1, 2, 3...)
 +              total: seconds,              // Total steps
 +              message: `${i} seconds remaining!`
@@ -435,14 +334,13 @@ export function createMcpServer(): McpServer {
 
 **Key Changes:**
 
-1. **Lines 5-9**: Add server capabilities configuration with `logging: {}` to enable notifications
-2. **Lines 27-66**: Register new "countdown" streaming tool with dual notification patterns
-3. **Lines 34-41**: Implement logging notifications for MCP Inspector debugging
-4. **Lines 43-52**: Implement progress notifications for VS Code progress bars
-5. **Line 55**: Add 1-second delay between updates using Promise-based setTimeout
-6. **Lines 58-63**: Return final "🚀 Blastoff!" result when countdown completes
+1. **New tool registration**: Register a "countdown" streaming tool alongside the existing "slugify" tool
+2. **Read the progress token**: Pull `progressToken` off `ctx.mcpReq._meta`, and only send notifications when a client actually asked for them
+3. **Send progress on each tick**: One `ctx.mcpReq.notify(...)` call per second, carrying the current step, total, and a status message
+4. **1-second delay** between updates using a Promise-based `setTimeout`
+5. **Final result**: Return the "🚀 Blastoff!" message once the loop completes
 
-📁 **Reference Implementation**: [training/6-streaming-mcp/src/mcp-server.ts](./6-streaming-mcp/src/mcp-server.ts#L5-L9,L27-L66)
+📁 **Reference Implementation**: [training/6-streaming-mcp/src/mcp-server.ts](./6-streaming-mcp/src/mcp-server.ts)
 
 ### Testing the Implementation
 
@@ -470,23 +368,16 @@ npx @modelcontextprotocol/inspector
 
 ### Key Implementation Details
 
-1. **Logging capabilities**: Server must declare `logging: {}` in capabilities to support notifications
-2. **RequestHandlerExtra**: Use `extra` parameter (not `ctx`) for tool context
-3. **Dual notification pattern**: Demonstrates two streaming approaches for different clients:
-   - **Logging notifications**: Always sent for debugging/monitoring
-   - **Progress notifications**: When VS Code provides `progressToken`
-4. **VS Code progress integration**: Use `notifications/progress` with `progressToken` from `extra._meta`
-5. **Progress calculation**: Send incremental progress (1, 2, 3...) with total for percentage display
-6. **Message format**: Include `level` and `data` fields for logging, `progress`/`total`/`message` for progress
-7. **Timing control**: Using `setTimeout` to create 1-second delays
-8. **Simple final result**: Clean "🚀 Blastoff!" message
-
-This streaming implementation provides **native VS Code progress bar integration** and **logging for debugging** - demonstrating MCP streaming capabilities!
+1. **`ctx.mcpReq`**: every request-scoped helper (progress, the abort signal) lives here
+2. **`progressToken` is opt-in**: only send progress when the caller included one
+3. **Progress calculation**: send incrementing progress (1, 2, 3...) with a total for percentage display
+4. **Timing control**: `setTimeout` creates the 1-second delays between updates
+5. **Simple final result**: a clean "🚀 Blastoff!" message once the countdown finishes
 
 ## Next Steps
 
-Your streaming MCP server works great, but what about handling multiple clients properly? Let's implement robust session management!
+Your streaming MCP server works great, but what about a tool that needs to remember something across multiple calls, without relying on the server to track who's calling? Let's build that.
 
-**Continue to:** [Step 7 - Reconnecting MCP Sessions: Stateful Transports](7-reconnect-mcp-sessions.md)
+**Continue to:** [Step 7 - Managing State Without Sessions](7-managing-state.md)
 
-In the next step, you'll enhance your HTTP server with proper session management to handle multiple concurrent clients with isolated state and reconnection support.
+In the next step, you'll build a tool that hands back an explicit state handle the client passes back on later calls, the pattern MCP servers use to stay stateless while still supporting multi-step workflows.

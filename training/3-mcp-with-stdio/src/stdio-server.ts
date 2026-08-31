@@ -1,17 +1,12 @@
 #!/usr/bin/env -S node --import ./loader.mjs
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { serveStdio } from "@modelcontextprotocol/server/stdio";
 import {createMcpServer} from "./mcp-server.js";
 
 try {
-  // Create stdio transport
-  const transport = new StdioServerTransport();
-  
-  // Connect server to transport
-  await createMcpServer().connect(transport);
-
-  // Log to stderr so it doesn't interfere with MCP protocol
+  // Serve the factory over stdio and log once it's up
+  void serveStdio(createMcpServer);
   console.error("Demo MCP server running on stdio");
-  
+
 } catch (error) {
   console.error("Server error:", error);
   process.exit(1);

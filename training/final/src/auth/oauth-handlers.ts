@@ -2,46 +2,97 @@ import express from 'express';
 import crypto from 'crypto';
 import { oauth } from './oauth-server.js';
 import model from './oauth-model.js';
+import { SERVER_URL } from './config.js';
+
+// Track server startup time for restart detection
+const serverStartTime = new Date();
+// 🔑 FIX: Include server instance in scopes to force VS Code to refresh tokens
+// This must match the scope in the WWW-Authenticate header
+// https://github.com/microsoft/vscode/issues/270383
+const serverInstanceScope = `server-instance-${serverStartTime.getTime()}`;
+
+// 0. Bearer token verification middleware for MCP routes
+export async function requireBearerAuth(
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) {
+  try {
+    // Extract bearer token
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return send401(res, req, 'Missing Authorization header');
+    }
+
+    const token = authHeader.substring(7);
+
+    // Validate token using OAuth model
+    const accessToken = await model.getAccessToken(token);
+    if (!accessToken) {
+      return send401(res, req, 'Invalid or expired access token');
+    }
+
+    // Verify the token was actually issued for this server. A token whose
+    // resource doesn't match ours was issued for some other resource and
+    // must not be accepted here (RFC 8707 audience binding). Tokens with no
+    // recorded resource (a client that skipped the `resource` parameter)
+    // are allowed through for this training server, but a production
+    // resource server should reject those too.
+    if (accessToken.resource && accessToken.resource !== SERVER_URL) {
+      return send401(res, req, 'Token was not issued for this resource');
+    }
+
+    // Add auth info to request
+    (req as any).auth = { user: accessToken.user, client: accessToken.client };
+    next();
+  } catch (error) {
+    return send401(res, req, 'Token validation failed');
+  }
+}
 
 // 1. OAuth Discovery - First step: clients discover OAuth endpoints
 export function discovery(req: express.Request, res: express.Response) {
   res.json({
-    issuer: 'http://localhost:3000',
-    authorization_endpoint: 'http://localhost:3000/authorize',
-    token_endpoint: 'http://localhost:3000/token',
-    registration_endpoint: 'http://localhost:3000/register',
+    issuer: SERVER_URL,
+    authorization_endpoint: `${SERVER_URL}/authorize`,
+    token_endpoint: `${SERVER_URL}/token`,
+    registration_endpoint: `${SERVER_URL}/register`,
     code_challenge_methods_supported: ['S256'],
     response_types_supported: ['code'],
     grant_types_supported: ['authorization_code', 'refresh_token'],
     token_endpoint_auth_methods_supported: ['none', 'client_secret_post'],
-    scopes_supported: []
+    scopes_supported: [serverInstanceScope],
+    // RFC 9207: tells clients this server includes `iss` in the
+    // authorization redirect, so they know to validate it.
+    authorization_response_iss_parameter_supported: true
   });
 }
 
 // 2. Protected Resource Metadata - Clients discover resource server info
 export function protectedResourceMetadata(req: express.Request, res: express.Response) {
-  const baseUrl = 'http://localhost:3000';
   res.json({
-    resource: baseUrl,
-    authorization_servers: [baseUrl],
-    scopes_supported: [],
+    resource: SERVER_URL,
+    authorization_servers: [SERVER_URL],
+    scopes_supported: [serverInstanceScope],
     bearer_methods_supported: ['header', 'body'],
-    resource_documentation: `${baseUrl}/.well-known/oauth-authorization-server`
+    resource_documentation: `${SERVER_URL}/.well-known/oauth-authorization-server`
   });
 }
 
-// 3. Client Registration - Optional: clients can register dynamically
+// 3. Client Registration - Dynamic Client Registration (RFC 7591), kept for
+// backwards compatibility with clients that don't support CIMD yet. Prefer
+// CIMD (a client_id that's a URL to a metadata document, handled directly
+// in oauth-model.ts's getClient) wherever the client supports it.
 export function register(req: express.Request, res: express.Response) {
-  // Dynamic client registration for MCP clients
   try {
     const clientMetadata = req.body;
-    
+
     // Generate a unique client ID for this MCP client
     const clientId = `mcp_${crypto.randomUUID()}`;
-    
+
     // Store the client in our model
-    const client = model.registerClient(clientId, clientMetadata);
-    
+    model.registerClient(clientId, clientMetadata);
+
     const registrationResponse = {
       client_id: clientId,
       client_id_issued_at: Math.floor(Date.now() / 1000),
@@ -54,10 +105,8 @@ export function register(req: express.Request, res: express.Response) {
       ...(clientMetadata.client_uri && { client_uri: clientMetadata.client_uri })
     };
 
-    console.log('Registered new MCP client:', clientId);
     res.status(201).json(registrationResponse);
   } catch (error) {
-    console.error('Client registration failed:', error);
     res.status(400).json({
       error: 'invalid_client_metadata',
       error_description: error instanceof Error ? error.message : 'Invalid client metadata'
@@ -68,14 +117,10 @@ export function register(req: express.Request, res: express.Response) {
 // 4. Authorization Request - Show consent page to user
 export function authorizeGet(req: express.Request, res: express.Response) {
   try {
-    console.log('Authorization GET request:', req.query);
-    
     // Show consent page with OAuth parameters
-    const { client_id, redirect_uri, code_challenge, code_challenge_method } = req.query;
+    const { client_id, redirect_uri, code_challenge, code_challenge_method, resource } = req.query;
     const state = req.query.state || 'default'; // Ensure state has a value
-    
-    console.log('Showing consent page for client:', client_id);
-    
+
     const consentPage = `
       <!DOCTYPE html>
       <html>
@@ -83,19 +128,21 @@ export function authorizeGet(req: express.Request, res: express.Response) {
       <body>
         <h1>Authorize MCP Demo Client</h1>
         <p>MCP Demo Client wants to access your account.</p>
-        
+
         <h3>OAuth Parameters:</h3>
         <div style="background: #f5f5f5; padding: 10px; margin: 10px 0; border-radius: 4px;">
           <p><strong>Client ID:</strong> <input type="text" value="${client_id}" readonly style="width: 200px; background: #fff;"></p>
           <p><strong>Redirect URI:</strong> <input type="text" value="${redirect_uri}" readonly style="width: 300px; background: #fff;"></p>
+          <p><strong>Resource:</strong> <input type="text" value="${resource || ''}" readonly style="width: 300px; background: #fff;"></p>
           <p><strong>Code Challenge:</strong> <input type="text" value="${code_challenge}" readonly style="width: 400px; background: #fff;"></p>
           <p><strong>Challenge Method:</strong> <input type="text" value="${code_challenge_method}" readonly style="width: 100px; background: #fff;"></p>
           <p><strong>State:</strong> <input type="text" value="${state}" readonly style="width: 300px; background: #fff;"></p>
         </div>
-        
+
         <form method="post">
           <input type="hidden" name="client_id" value="${client_id}">
           <input type="hidden" name="redirect_uri" value="${redirect_uri}">
+          <input type="hidden" name="resource" value="${resource || ''}">
           <input type="hidden" name="code_challenge" value="${code_challenge}">
           <input type="hidden" name="code_challenge_method" value="${code_challenge_method}">
           <input type="hidden" name="state" value="${state}">
@@ -106,11 +153,9 @@ export function authorizeGet(req: express.Request, res: express.Response) {
       </body>
       </html>
     `;
-    
-    console.log('Sending consent page HTML');
+
     res.send(consentPage);
   } catch (error) {
-    console.error('Authorization GET error:', error);
     res.status(500).json({ error: 'Authorization failed' });
   }
 }
@@ -121,9 +166,14 @@ export function authorizeDecision(req: express.Request, res: express.Response) {
   if (req.body.authorize !== 'true') {
     const redirectUri = req.body.redirect_uri;
     const state = req.body.state;
-    return res.redirect(`${redirectUri}?error=access_denied&state=${state}`);
+    return res.redirect(`${redirectUri}?error=access_denied&state=${state}&iss=${encodeURIComponent(SERVER_URL)}`);
   }
-  
+
+  // Record which resource this authorization is for, keyed by the PKCE
+  // code_challenge, so saveAuthorizationCode can pick it back up. The OAuth
+  // library has no concept of `resource`, so this is the hand-off point.
+  model.setPendingResource(req.body.code_challenge, req.body.resource || undefined);
+
   // For approval, redirect to a GET endpoint with query parameters
   const authUrl = new URL('http://localhost:3000/oauth/authorize-internal');
   authUrl.searchParams.set('client_id', req.body.client_id);
@@ -132,7 +182,7 @@ export function authorizeDecision(req: express.Request, res: express.Response) {
   authUrl.searchParams.set('code_challenge_method', req.body.code_challenge_method);
   authUrl.searchParams.set('state', req.body.state || 'default');
   authUrl.searchParams.set('response_type', 'code');
-  
+
   // Redirect to internal authorization endpoint
   res.redirect(authUrl.toString());
 }
@@ -141,7 +191,7 @@ export function authorizeDecision(req: express.Request, res: express.Response) {
 export function callback(req: express.Request, res: express.Response) {
   // Simple callback page for OAuth flow completion
   const { code, state, error } = req.query;
-  
+
   if (error) {
     res.send(`
       <!DOCTYPE html>
@@ -156,7 +206,7 @@ export function callback(req: express.Request, res: express.Response) {
     `);
     return;
   }
-  
+
   res.send(`
     <!DOCTYPE html>
     <html>
@@ -169,4 +219,68 @@ export function callback(req: express.Request, res: express.Response) {
     </body>
     </html>
   `);
+}
+
+// Helpers
+function isVSCodeClient(req: express.Request): boolean {
+  // Check User-Agent header - VS Code sends "node"
+  const userAgent = req.headers['user-agent'];
+  if (userAgent === 'node') {
+    return true;
+  }
+
+  // Check MCP initialize request clientInfo
+  if (req.body?.method === 'initialize' && req.body?.params?.clientInfo) {
+    const clientName = req.body.params.clientInfo.name;
+    if (clientName === 'Visual Studio Code') {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function createWwwAuthenticate(
+  req: express.Request,
+  errorDescription?: string
+): string {
+  const metadataUrl = `${SERVER_URL}/.well-known/oauth-authorization-server`;
+
+  let authValue = `Bearer realm="mcp", scope="${serverInstanceScope}"`;
+
+  // Add error description if provided
+  if (errorDescription) {
+    authValue += `, error="invalid_token", error_description="${errorDescription}"`;
+  }
+
+  // VS Code requires non-standard resource_metadata_url parameter
+  // Other clients use standard resource_metadata parameter (RFC 9728)
+  if (isVSCodeClient(req)) {
+    authValue += `, resource_metadata_url="${metadataUrl}"`;
+  } else {
+    authValue += `, resource_metadata="${metadataUrl}"`;
+  }
+
+  return authValue;
+}
+
+function send401(
+  res: express.Response,
+  req: express.Request,
+  errorDescription?: string
+) {
+  res
+    .status(401)
+    .header('WWW-Authenticate', createWwwAuthenticate(req, errorDescription))
+    .header('Cache-Control', 'no-cache, no-store, must-revalidate')
+    .header('Pragma', 'no-cache')
+    .header('Expires', '0')
+    .json({
+      jsonrpc: '2.0',
+      error: {
+        code: -32001,
+        message: errorDescription || 'Authentication required',
+      },
+      id: req.body?.id || null,
+    });
 }

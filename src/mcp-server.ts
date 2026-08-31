@@ -1,5 +1,5 @@
-//import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-//import { z } from "zod";
+//import { McpServer } from "@modelcontextprotocol/server";
+//import * as z from "zod/v4";
 
 function createSlug(text: string): string {
   const slug = text
@@ -9,13 +9,13 @@ function createSlug(text: string): string {
     .trim()
     .replace(/[\s_-]+/g, "-")
     .replace(/^-+|-+$/g, "");
-  
+
   return slug;
 }
 
 // Factory function to create a new MCP server instance
 export function createMcpServer()/*: McpServer*/ {
-  // Create and configure the MCP server
+  // TODO: Create and configure the MCP server
 
 
   // Register tools

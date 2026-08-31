@@ -1,15 +1,17 @@
-# Building MCP Services in 2025 (with Node.js)
+# Building MCP Services (with Node.js)
 
-> A practical, spec‑aligned walkthrough from stdio tool provider → streamable HTTP service → OAuth 2.1 / PKCE
+> A practical, spec-aligned walkthrough from stdio tool provider → streamable HTTP service → OAuth 2.1 / PKCE
+
+> **Spec version:** [MCP Specification 2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28/changelog), the current stable release. Stateless protocol: no session handshake, no `Mcp-Session-Id`.
 
 ---
 
 ## 0) Housekeeping
 
 * Target audience: JS/TS engineers who build AI agent integrations.
-* What you’ll build today:
+* What you'll build today:
 
-  1. A tiny **stdio MCP server** exposing one useful tool via `@modelcontextprotocol/sdk`.
+  1. A tiny **stdio MCP server** exposing one useful tool via `@modelcontextprotocol/server`.
   2. The same server as a **Streamable HTTP** service.
   3. Add **OAuth 2.1 with PKCE** for protected endpoints.
 * All examples: **Node.js (TypeScript)**.
@@ -22,23 +24,24 @@
 
 **Slide points**
 
-* MCP is a **protocol** (JSON‑RPC over transports) that lets “clients” (agent apps, IDEs, chat UIs) call capabilities hosted by **servers**.
+* MCP is a **protocol** (JSON-RPC over transports) that lets "clients" (agent apps, IDEs, chat UIs) call capabilities hosted by **servers**.
 * Capabilities include:
 
-  * **Tools**: RPC‑like functions clients can call.
+  * **Tools**: RPC-like functions clients can call.
   * **Resources**: Readable URIs that return content (like files or dynamic lookups).
-  * **Prompts**: Pre‑defined prompt templates exposed by the server.
-  * **Sampling hooks**: Let a client delegate text generation back to the server.
-* Transports (2025): **stdio** and **Streamable HTTP**. HTTP+SSE is deprecated; SSE is now an **optional** channel inside Streamable HTTP.
+  * **Prompts**: Pre-defined prompt templates exposed by the server.
+  * **Elicitation**: Lets a server ask the user, through the client, for information it needs mid-task.
+* Transports: **stdio** and **Streamable HTTP**.
+* Every request is self-contained: it carries its protocol version and capabilities right along with it, so any server instance can handle any request.
 * Agent relation: an agent (client) discovers server capabilities → invokes tools → fetches resources → uses prompts → streams results → updates context.
 
 **Diagram (describe)**
 
-* Client (Agent UI) ⇄ Transport (stdio | Streamable HTTP) ⇄ MCP Server (Tools / Resources / Prompts / Sampling)
+* Client (Agent UI) ⇄ Transport (stdio | Streamable HTTP) ⇄ MCP Server (Tools / Resources / Prompts)
 
 **Notes**
 
-* Keep “server vs. tool provider” terminology consistent with SDK.
+* Keep "server vs. tool provider" terminology consistent with SDK.
 
 ---
 
@@ -48,16 +51,17 @@
 
 **What to demo**
 
-* Show **MCP Inspector** connecting to Atlassian’s cloud MCP server (Rovo) and listing available tools (Jira/Confluence capabilities).
-* Call a read‑only tool (e.g., search issues) to demonstrate auth‑required servers.
+* Show **MCP Inspector** connecting to Atlassian's cloud MCP server (Rovo) over Streamable HTTP and listing available tools (Jira/Confluence capabilities).
+* Call a read-only tool (e.g., search issues) to demonstrate auth-required servers.
 
 **Prep**
 
-* Atlassian Cloud site, a test project, client ID, and an access token via OAuth 2.1 + PKCE.
+* Atlassian Cloud site, a test project, and an OAuth 2.1 + PKCE flow through Inspector.
 
 **Talking points**
 
-* “Server advertises scopes; client obtains token; tools enforce user’s permissions.”
+* "Server advertises scopes; client obtains token; tools enforce user's permissions."
+* The client identifies itself via a Client ID Metadata Document (CIMD), a small JSON file it hosts at a fixed URL, rather than pre-registering.
 
 ---
 
@@ -65,7 +69,7 @@
 
 **Goal:** First contact with the TypeScript SDK.
 
-**What we’ll build**
+**What we'll build**
 
 * `demo-server` exposing one tool: `slugify` (turn a title into a URL slug).
 
@@ -73,46 +77,51 @@
 
 ```ts
 // src/stdio-server.ts
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { z } from "zod";
+import { McpServer } from "@modelcontextprotocol/server";
+import { serveStdio } from "@modelcontextprotocol/server/stdio";
+import * as z from "zod/v4";
 
-const server = new McpServer({ name: "demo-server", version: "1.0.0" });
+function createServer(): McpServer {
+  const server = new McpServer({ name: "demo-server", version: "1.0.0" });
 
-server.registerTool(
-  "slugify",
-  {
-    title: "Slugify",
-    description: "Convert text to a URL-friendly slug",
-    inputSchema: { text: z.string() },
-  },
-  async ({ text }) => {
-    const slug = text
-      .toLowerCase()
-      .normalize("NFKD")
-      .replace(/[^\w\s-]/g, "")
-      .trim()
-      .replace(/[\s_-]+/g, "-")
-      .replace(/^-+|-+$/g, "");
-    return { content: [{ type: "text", text: slug }] };
-  }
-);
+  server.registerTool(
+    "slugify",
+    {
+      title: "Slugify",
+      description: "Convert text to a URL-friendly slug",
+      inputSchema: z.object({ text: z.string() }),
+    },
+    async ({ text }) => {
+      const slug = text
+        .toLowerCase()
+        .normalize("NFKD")
+        .replace(/[^\w\s-]/g, "")
+        .trim()
+        .replace(/[\s_-]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+      return { content: [{ type: "text", text: slug }] };
+    }
+  );
 
-const transport = new StdioServerTransport();
-await server.connect(transport);
+  return server;
+}
+
+void serveStdio(createServer);
+console.error("demo MCP server running on stdio");
 ```
 
 **Run**
 
-* `node src/stdio-server.js` (or ts-node/tsx). Ensure Node ≥ 18.
+* `npx tsx src/stdio-server.ts`. Node 20+.
 
 **Test with Inspector**
 
-* `npx @modelcontextprotocol/inspector` → Connect via **stdio** → `list-tools` → call `slugify`.
+* `npx @modelcontextprotocol/inspector npx tsx src/stdio-server.ts` → `list-tools` → call `slugify`.
 
 **Speaker notes**
 
 * Emphasize `registerTool` and content schema; keep output as `content: [{type:"text"...}]`.
+* `inputSchema` takes a single `z.object({...})`, not a bare key-value shape.
 
 ---
 
@@ -123,106 +132,90 @@ await server.connect(transport);
 **Live tour checklist**
 
 * Connect to local server via stdio.
-* Browse **Tools**, **Resources**, **Prompts** (even if server doesn’t expose them).
-* Send a request; watch **request/response** JSON.
+* Browse **Tools**, **Resources**, **Prompts** (even if server doesn't expose them).
+* Send a request; watch **request/response** JSON, including the `resultType` field on every result.
 * Toggle **logging**; inspect **notifications**.
-* Tip: pass args/env to your server through Inspector’s launch form.
+* Tip: pass args/env to your server through Inspector's launch form.
 
 **Troubleshooting slide**
 
-* If “no tools,” check version mismatch and `capabilities`.
+* If "no tools," check version mismatch and `capabilities`.
 * Validate schemas with small payloads first.
 
 ---
 
 ## 5) From stdio to a **Streamable HTTP** MCP service
 
-**Goal:** Production‑oriented transport suitable for multiple clients and hosting.
+**Goal:** Production-oriented transport suitable for multiple clients and hosting.
 
 **Key concepts**
 
 * Replace local stdio with **Streamable HTTP**.
-* Typical endpoints: `POST /mcp` (client → server messages), `GET /mcp` (optional SSE stream for server → client notifications/messages), `DELETE /mcp` (end session).
-* Sessions via `mcp-session-id` header; server maps each session to a transport.
-
-**Explanation: Streamable HTTP and SSE**
-
-* **Streamable HTTP**: a long-lived HTTP transport where clients and servers exchange JSON-RPC messages over POST/GET/DELETE. It's more scalable than stdio and allows multiple concurrent clients.
-* **Server-Sent Events (SSE)**: an optional part of Streamable HTTP. The client opens a `GET /mcp` request, and the server pushes events (progress, logs, notifications) as they happen.
-* **When to use Streamable HTTP**: whenever you want to deploy your MCP server on the web or need multi-client support.
-* **When to add SSE**: if your tools produce intermediate results, logs, or notifications that should reach the client in real time.
+* One endpoint: `POST /mcp`. No `GET`, no `DELETE`, no session id.
+* The server replies with either a plain JSON object, or an SSE stream scoped to that one request (progress/log notifications, then the final result).
+* Stateless by default: any server instance can answer any request, so it sits behind an ordinary load balancer with no sticky routing.
 
 **Code (TypeScript, minimal)**
 
 ```ts
 // src/http-server.ts
-import express from 'express';
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import server from "./mcp-server.js";
+import { createMcpExpressApp } from "@modelcontextprotocol/express";
+import { toNodeHandler } from "@modelcontextprotocol/node";
+import { createMcpHandler } from "@modelcontextprotocol/server";
+import { createServer } from "./mcp-server.js";
 
-const app = express();
-app.use(express.json());
+const handler = createMcpHandler(createServer);
+const node = toNodeHandler(handler);
 
-// Create a single transport for all requests (stateless mode)
-const transport = new StreamableHTTPServerTransport({
-  sessionIdGenerator: undefined, // Stateless mode
-});
+// Express app with express.json() and DNS-rebinding protection already wired up
+const app = createMcpExpressApp();
 
-await server.connect(transport);
-
-// POST: client → server messages
-app.post("/mcp", async (req, res) => {
-  await transport.handleRequest(req, res, req.body);
-});
-
-// GET: optional SSE stream (server → client)
-app.get("/mcp", async (req, res) => {
-  await transport.handleRequest(req, res);
-});
-
-// DELETE: end session
-app.delete("/mcp", async (req, res) => {
-  await transport.handleRequest(req, res);
-});
+app.all("/mcp", (req, res) => void node(req, res, req.body));
 
 app.listen(3000);
 ```
 
 **Run & test**
 
-* Launch, then connect via Inspector’s **HTTP** mode (or a simple client).
+* Launch, then connect via Inspector's **Streamable HTTP** mode (or a simple client).
 
 **Speaker notes**
 
-* Contrast with deprecated HTTP+SSE: Streamable HTTP is the new baseline; SSE is optional inside it.
-* Start simple with stateless mode - session management comes next.
-* This approach works for basic testing but isn't production-ready for multiple clients.
+* One route, one method. No session map to build or clean up.
+* If a tool needs to remember something across calls, it hands back an explicit id (Step 7), it doesn't lean on the transport for that.
 
 ---
 
 ## 6) Streaming responses: when and how
 
-**Goal:** Show partial results/notifications.
+**Goal:** Show progress notifications on a long-running call.
 
 **Talking points**
 
-* Tools can emit **notifications** or chunked responses; clients may subscribe via the GET (SSE) stream.
-* Good for long‑running operations, logs, heartbeats, or progressive results.
+* A client that wants progress includes a `progressToken` on the call; the handler sends `notifications/progress` carrying that token.
+* Those notifications ride the same response stream as the call itself, arriving before the final result.
+* Good for long-running operations where you want to keep the user informed.
 
-**Add a simple streaming tool (start here)**
+**Add a streaming tool**
 
 ```ts
-// Step 6: basic streaming without business rules — we'll add validation in Step 8
 server.registerTool(
   "countdown",
   {
     title: "Countdown",
     description: "Streams a countdown until blastoff",
-    inputSchema: { seconds: z.number().int().positive() },
+    inputSchema: z.object({ seconds: z.number().int().positive() }),
   },
   async ({ seconds }, ctx) => {
+    const progressToken = ctx.mcpReq._meta?.progressToken;
+
     for (let i = seconds; i > 0; i--) {
-      await ctx.notify({ event: "progress", data: { secondsRemaining: i } });
+      if (progressToken !== undefined) {
+        await ctx.mcpReq.notify({
+          method: "notifications/progress",
+          params: { progressToken, progress: seconds - i + 1, total: seconds, message: `${i}s remaining` },
+        });
+      }
       await new Promise((r) => setTimeout(r, 1000));
     }
     return { content: [{ type: "text", text: "Blastoff!" }] };
@@ -232,64 +225,61 @@ server.registerTool(
 
 ---
 
-## 7) Reconnecting MCP sessions: stateful transports
+## 7) Managing state without sessions
 
-**Goal:** Handle multiple clients with proper session management.
+**Goal:** Handle a multi-step workflow on a server that keeps no per-client state.
 
 **Key concepts**
 
-* **Sessions via `mcp-session-id` header**: server maps each session to a transport instance.
-* **Session lifecycle**: initialization → use → termination → cleanup.
-* **Transport per session**: each client gets its own transport instance with isolated state.
+* No sessions, no `Mcp-Session-Id`. Every request stands alone.
+* When a tool creates state worth keeping, it mints an id and returns it as ordinary result data.
+* The caller passes that id back as an ordinary argument on later calls, exactly like any REST resource id.
+* The actual state lives in a plain server-side store (a `Map` for local dev, a database or cache in production), keyed by that id.
 
-**Why sessions matter**
+**Why this pattern**
 
-* **State isolation**: different clients don't interfere with each other.
-* **Resource management**: proper cleanup when clients disconnect.
-* **Streaming support**: SSE streams need persistent connections per client.
-* **Scalability**: handle many concurrent clients efficiently.
+* **Any instance answers any request**: the id, not a sticky connection, is what identifies the state.
+* **Resource management**: nothing to clean up on disconnect, state lives independently of the transport.
+* **Scalability**: horizontal scaling with no session affinity.
 
-**Code enhancement**
+**Code**
 
 ```ts
-// Enhanced src/http-server.ts with session management
-const transports: Record<string, StreamableHTTPServerTransport> = {};
+interface Task { label: string; progress: number; notes: string[] }
+const tasks = new Map<string, Task>();
 
-app.post("/mcp", async (req, res) => {
-  const sessionId = req.headers['mcp-session-id'] as string | undefined;
-  let transport: StreamableHTTPServerTransport;
-
-  if (sessionId && transports[sessionId]) {
-    // Reuse existing transport
-    transport = transports[sessionId];
-  } else {
-    // Create new transport with session management
-    transport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: () => Math.random().toString(36).substring(2),
-      onsessioninitialized: (newSessionId: string) => {
-        transports[newSessionId] = transport;
-      },
-    });
-
-    // Clean up on close
-    transport.onclose = () => {
-      if (transport.sessionId) {
-        delete transports[transport.sessionId];
-      }
-    };
-
-    await server.connect(transport);
+server.registerTool(
+  "start-task",
+  { title: "Start Task", description: "Start a task", inputSchema: z.object({ label: z.string() }) },
+  async ({ label }) => {
+    const taskId = crypto.randomUUID();
+    tasks.set(taskId, { label, progress: 0, notes: [] });
+    return { content: [{ type: "text", text: `Started task "${label}" with id ${taskId}` }] };
   }
+);
 
-  await transport.handleRequest(req, res, req.body);
-});
+server.registerTool(
+  "advance-task",
+  {
+    title: "Advance Task",
+    description: "Add a note and advance a task's progress",
+    inputSchema: z.object({ taskId: z.string(), note: z.string() }),
+  },
+  async ({ taskId, note }) => {
+    const task = tasks.get(taskId);
+    if (!task) return { content: [{ type: "text", text: `No task found with id "${taskId}"` }], isError: true };
+    task.progress += 1;
+    task.notes.push(note);
+    return { content: [{ type: "text", text: `Task "${task.label}" is now at progress ${task.progress}` }] };
+  }
+);
 ```
 
 **Test scenarios**
 
 * Connect multiple Inspector instances simultaneously.
-* Verify each gets its own session ID.
-* Test reconnection with existing session ID.
+* Start a task from each; verify progress stays independent per `taskId`.
+* Call `advance-task` with a made-up id; verify a clean `isError: true` result, not a crash.
 
 ---
 
@@ -299,29 +289,33 @@ app.post("/mcp", async (req, res) => {
 
 **Talking points**
 
-* **Schema validation** with Zod catches type/shape issues.
-* **Runtime/business rules** enforce constraints your schema can’t express (e.g., rate limits, plan tiers, resource caps).
-* Prefer **clear, user‑facing error messages**; optionally include error codes to help clients render UI.
+* **Schema validation** with Zod catches type/shape issues before your handler runs.
+* **Runtime/business rules** enforce constraints your schema can't express (e.g., rate limits, plan tiers, resource caps).
+* Throwing a plain `Error` from a tool handler is caught by the SDK and turned into an `isError: true` result the model can read and recover from; return that shape explicitly for more control over the content.
 
 **Enhance the same tool with validation**
 
 ```ts
-// Step 8: add a business rule on top of the Step 6 tool
 server.registerTool(
   "countdown",
   {
     title: "Countdown",
     description: "Streams a countdown until blastoff (validated)",
-    inputSchema: { seconds: z.number().int().positive() },
+    inputSchema: z.object({ seconds: z.number().int().positive() }),
   },
   async ({ seconds }, ctx) => {
     // Business rule: cap at 15s for demo UX
     if (seconds > 15) {
-      // Consider a structured MCP error for richer client rendering
       throw new Error("'seconds' must be <= 15 for this demo");
     }
+    const progressToken = ctx.mcpReq._meta?.progressToken;
     for (let i = seconds; i > 0; i--) {
-      await ctx.notify({ event: "progress", data: { secondsRemaining: i } });
+      if (progressToken !== undefined) {
+        await ctx.mcpReq.notify({
+          method: "notifications/progress",
+          params: { progressToken, progress: seconds - i + 1, total: seconds },
+        });
+      }
       await new Promise((r) => setTimeout(r, 1000));
     }
     return { content: [{ type: "text", text: "Blastoff!" }] };
@@ -333,32 +327,34 @@ server.registerTool(
 
 ## 9) Authorization: OAuth 2.1 + PKCE for MCP
 
-**Goal:** Secure your HTTP server and call into protected upstreams.
+**Goal:** Secure your HTTP server as an OAuth 2.1 resource server.
 
 **Conceptual flow**
 
-1. Client initiates auth with your server’s metadata (scopes, auth URL).
-2. Browser‑based PKCE flow (code verifier/challenge) → Authorization Server issues **access token**.
-3. Client presents token to your MCP server over HTTP headers.
-4. Server validates token (introspection/JWKS) and enforces scopes per tool.
+1. Client calls without a token → server returns `401` with `WWW-Authenticate` pointing at its protected-resource metadata.
+2. Client discovers the authorization server, identifies itself via a Client ID Metadata Document (CIMD) rather than registering, and runs the PKCE flow, naming your MCP server's URL as the `resource` it wants a token for.
+3. Authorization server issues a token bound to that resource; the redirect back to the client carries `iss` (RFC 9207) for the client to validate.
+4. Client presents the token on every `/mcp` request via `Authorization: Bearer <token>`.
+5. Server verifies signature, issuer, and audience (does this token's `resource` match me?) on each request independently, no session involved.
 
 **Server hooks**
 
-* Add middleware on `/mcp` endpoints to extract & verify `Authorization: Bearer <token>`.
-* Map scopes → tool allowlist; pass user identity/claims into `ctx`.
+* `requireBearerAuth` middleware in front of `/mcp`, verifying the token and rejecting with `401` + `WWW-Authenticate` on failure.
+* Map scopes → tool allowlist; pass verified identity into `ctx.http.authInfo`.
 
 **Demo idea**
 
-* Protect `slugify` tool; require `demo.read` scope.
+* Protect the `slugify` tool; run the full CIMD → consent → token → authenticated call sequence live.
 
+---
 
 ## 10) Tips & gotchas
 
-* **Hosting:** Node 18+ on Fly/Render/Vercel functions (for GET/POST/DELETE) or a container on k8s.
-* **State:** Session map must be bounded; evict on `DELETE` or idle timeout.
-* **CORS:** Lock down origins for browser‑based clients.
-* **Logging:** Never write non‑MCP data to stdio for stdio servers; use stderr or structured logs for HTTP.
-* **Versioning:** Keep spec/SDK in sync; watch transport changes.
+* **Hosting:** Node 20+ on Fly/Render/Vercel functions or a container on k8s. Stateless by default, so no sticky sessions to configure.
+* **State:** Any cross-call state is an explicit id in a server-side store, not a session, keep that store bounded and evict on your own schedule.
+* **DNS rebinding:** validate `Host` and `Origin` on every request; `createMcpExpressApp` does this for you on a localhost bind.
+* **Logging:** Never write non-MCP data to stdout for stdio servers; use stderr or structured logs for HTTP.
+* **Headers:** real HTTP requests need `MCP-Protocol-Version`, `Mcp-Method`, and a `_meta` envelope in the body. SDK clients (VS Code, Inspector) send these for you; a hand-rolled `curl` request needs them spelled out or it silently negotiates down to legacy behavior.
 * **Testing:** Integrate Inspector into CI (smoke test tools, resources, prompts).
 
 ---
@@ -369,13 +365,14 @@ server.registerTool(
 
   * What MCP is and how agents use it.
   * Built a Node stdio server.
-  * Upgraded to a Streamable HTTP service with optional SSE.
-  * Secured it with OAuth 2.1 + PKCE.
+  * Upgraded to a stateless Streamable HTTP service.
+  * Managed multi-step state without sessions.
+  * Secured it with OAuth 2.1 + PKCE, CIMD, and resource-bound tokens.
 * **Next steps:**
 
   * Add real tools (Jira/Confluence, GitHub, databases).
   * Ship observability (request IDs, timing, error taxonomies).
-  * Explore **Sampling** and **Prompts** for richer clients.
+  * Explore **Resources** and **Elicitation** for richer clients.
 
 ---
 
@@ -391,18 +388,18 @@ server.registerTool(
     "dev:http": "tsx src/http-server.ts"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.18.0",
-    "hono": "^4.5.0",
-    "zod": "^3.23.0"
+    "@modelcontextprotocol/server": "^2.0.0",
+    "@modelcontextprotocol/express": "^2.0.0",
+    "@modelcontextprotocol/node": "^2.0.0",
+    "zod": "^4.0.0"
   },
   "devDependencies": { "tsx": "^4.0.0", "typescript": "^5.6.0" }
 }
 ```
 
-**Inspector one‑liners**
+**Inspector one-liners**
 
-* `npx @modelcontextprotocol/inspector` (stdio)
-* `npx @modelcontextprotocol/inspector --baseUrl http://localhost:3000/mcp` (HTTP)
+* `npx @modelcontextprotocol/inspector npx tsx src/stdio-server.ts` (stdio)
+* `npx @modelcontextprotocol/inspector` then connect to `http://localhost:3000/mcp` via Streamable HTTP (HTTP)
 
 **Token plumbing during demos**
-
